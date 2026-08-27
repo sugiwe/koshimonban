@@ -1,0 +1,13 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# スパイク検証のビルド成果物
+spike/build/
+
+# macOS
+.DS_Store
