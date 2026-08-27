@@ -135,6 +135,41 @@ checkID("空文字は拒否", "", nil)
 checkID("v パラメータのない YouTube URL は拒否", "https://www.youtube.com/feed/subscriptions", nil)
 checkID("不正な文字を含む ID は拒否", "https://youtu.be/abc$def", nil)
 
+print("\n=== 記録の JSON 形式 ===")
+let sampleRecord = BreakRecord(
+    scheduledAt: TimeOfDay(string: "11:00")!,
+    firedAt: TimeOfDay(string: "11:00")!,
+    result: .skipped,
+    skipReason: .meeting,
+    shownSeconds: 7,
+    videoTitle: "肩と腰のストレッチ"
+)
+let encoder = JSONEncoder()
+encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+let encoded = String(data: try! encoder.encode(["2026-08-27": [sampleRecord]]), encoding: .utf8)!
+check("仕様書のフォーマットで書き出される", encoded,
+      #"{"2026-08-27":[{"firedAt":"11:00","result":"skipped","scheduledAt":"11:00","shownSeconds":7,"skipReason":"meeting","videoTitle":"肩と腰のストレッチ"}]}"#)
+
+let roundTripped = try! JSONDecoder().decode([String: [BreakRecord]].self, from: encoded.data(using: .utf8)!)
+check("読み戻せる", roundTripped["2026-08-27"]?.first?.skipReason?.rawValue ?? "(nil)", "meeting")
+
+// 手で編集されてキーが欠けても読めること
+let partial = #"{"2026-08-27":[{"scheduledAt":"10:30","result":"completed"}]}"#
+let partialDecoded = try! JSONDecoder().decode([String: [BreakRecord]].self, from: partial.data(using: .utf8)!)
+check("キーが欠けていても既定値で読める",
+      "\(partialDecoded["2026-08-27"]?.first?.firedAt.displayString ?? "(nil)") / \(partialDecoded["2026-08-27"]?.first?.shownSeconds ?? -1)",
+      "10:30 / 0")
+
+print("\n=== 達成率の数え方 ===")
+check("完了は達成に数える", BreakResult.completed.countsAsAchieved ? "数える" : "数えない", "数える")
+check("短縮も達成に数える（立ち上がってはいる）", BreakResult.short.countsAsAchieved ? "数える" : "数えない", "数える")
+check("スキップは達成に数えないが、分母には入れる",
+      "\(BreakResult.skipped.countsAsAchieved) / \(BreakResult.skipped.countsInTotal)", "false / true")
+check("取りこぼしは分母にも入れない（本人の意思ではないため）",
+      "\(BreakResult.missed.countsAsAchieved) / \(BreakResult.missed.countsInTotal)", "false / false")
+check("一時停止も分母に入れない",
+      "\(BreakResult.paused.countsAsAchieved) / \(BreakResult.paused.countsInTotal)", "false / false")
+
 print("")
 if failures == 0 {
     print("すべて期待どおりです（\(failures) 件の失敗）")

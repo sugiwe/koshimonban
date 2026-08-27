@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var settingsStore: SettingsStore
     @EnvironmentObject private var scheduler: Scheduler
+    @EnvironmentObject private var logStore: LogStore
 
     var body: some View {
         TabView {
@@ -14,6 +15,9 @@ struct SettingsView: View {
 
             VideosTab()
                 .tabItem { Label("動画", systemImage: "play.rectangle") }
+
+            RecordsTab()
+                .tabItem { Label("記録", systemImage: "chart.bar") }
 
             DeveloperTab()
                 .tabItem { Label("開発", systemImage: "hammer") }
