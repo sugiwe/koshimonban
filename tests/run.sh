@@ -18,6 +18,7 @@ swiftc -O -o "$OUT/gridtest" \
     Tatsumaki/Sources/Models/AppSettings.swift \
     Tatsumaki/Sources/Models/BreakResult.swift \
     Tatsumaki/Sources/Scheduling/ScheduleGrid.swift \
+    Tatsumaki/Sources/Video/YouTubeURL.swift \
     tests/ScheduleGridTests/main.swift
 
 "$OUT/gridtest"

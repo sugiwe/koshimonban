@@ -54,8 +54,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         scheduler.isOverlayVisible = { overlay.isVisible }
 
         scheduler.onFire = { _, _ in
+            let video = VideoRotator.shared.next(from: settings.settings.videos)
             overlay.present(breakSeconds: settings.settings.breakSeconds,
-                            skipUnlockSeconds: settings.settings.skipUnlockSeconds)
+                            skipUnlockSeconds: settings.settings.skipUnlockSeconds,
+                            video: video)
         }
 
         overlay.onFinish = { result, reason, shownSeconds, _ in

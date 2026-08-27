@@ -18,14 +18,20 @@ final class OverlayController: ObservableObject {
 
     private var windows: [OverlayWindow] = []
     private var session: BreakSession?
+    private var video: VideoEntry?
+    private var playbackState: VideoPlaybackState?
     private var screenChangeObserver: NSObjectProtocol?
 
     // MARK: 表示
 
-    func present(breakSeconds: Int, skipUnlockSeconds: Int) {
+    func present(breakSeconds: Int, skipUnlockSeconds: Int, video: VideoEntry?) {
         guard !isVisible else { return }
 
+        self.video = video
+        self.playbackState = video == nil ? nil : VideoPlaybackState()
+
         let session = BreakSession(breakSeconds: breakSeconds, skipUnlockSeconds: skipUnlockSeconds)
+        session.videoTitle = video?.displayTitle
         session.onFinish = { [weak self] result, reason, shownSeconds in
             guard let self else { return }
             let videoTitle = self.session?.videoTitle
@@ -45,6 +51,9 @@ final class OverlayController: ObservableObject {
     func dismiss() {
         session?.invalidate()
         session = nil
+        playbackState?.invalidate()
+        playbackState = nil
+        video = nil
         tearDownWindows()
         stopObservingScreenChanges()
         isVisible = false
@@ -62,7 +71,10 @@ final class OverlayController: ObservableObject {
             let window = OverlayWindow(screen: screen)
             let isPrimary = (index == 0)
             let hosting = NSHostingView(
-                rootView: OverlayRootView(session: session, isPrimary: isPrimary)
+                rootView: OverlayRootView(session: session,
+                                          isPrimary: isPrimary,
+                                          video: video,
+                                          playbackState: playbackState)
             )
             hosting.frame = window.contentLayoutRect
             hosting.autoresizingMask = [.width, .height]

@@ -112,6 +112,29 @@ check("終了が開始より前の時間帯は無視される",
 check("間隔0では発動予定を作らない",
       times(settings(blocks: [block("10:00", "12:00")], interval: 0)), "")
 
+print("\n=== YouTube の URL 解析 ===")
+func checkID(_ label: String, _ input: String, _ expected: String?) {
+    let actual = YouTubeURL.videoID(from: input)
+    check(label, actual ?? "(nil)", expected ?? "(nil)")
+}
+checkID("標準の watch URL", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ")
+checkID("追加パラメータ付き", "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s&list=PLxxx", "dQw4w9WgXcQ")
+checkID("パラメータの順序が違う", "https://www.youtube.com/watch?t=42s&v=dQw4w9WgXcQ", "dQw4w9WgXcQ")
+checkID("短縮 URL", "https://youtu.be/dQw4w9WgXcQ", "dQw4w9WgXcQ")
+checkID("短縮 URL + パラメータ", "https://youtu.be/dQw4w9WgXcQ?t=42", "dQw4w9WgXcQ")
+checkID("埋め込み URL", "https://www.youtube.com/embed/dQw4w9WgXcQ", "dQw4w9WgXcQ")
+checkID("nocookie の埋め込み URL", "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ", "dQw4w9WgXcQ")
+checkID("Shorts", "https://www.youtube.com/shorts/dQw4w9WgXcQ", "dQw4w9WgXcQ")
+checkID("ライブ", "https://www.youtube.com/live/dQw4w9WgXcQ", "dQw4w9WgXcQ")
+checkID("m. のモバイル URL", "https://m.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ")
+checkID("スキームなし", "www.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ")
+checkID("前後の空白", "  https://youtu.be/dQw4w9WgXcQ  ", "dQw4w9WgXcQ")
+checkID("ID を直接貼った場合", "dQw4w9WgXcQ", "dQw4w9WgXcQ")
+checkID("YouTube 以外の URL は拒否", "https://vimeo.com/12345", nil)
+checkID("空文字は拒否", "", nil)
+checkID("v パラメータのない YouTube URL は拒否", "https://www.youtube.com/feed/subscriptions", nil)
+checkID("不正な文字を含む ID は拒否", "https://youtu.be/abc$def", nil)
+
 print("")
 if failures == 0 {
     print("すべて期待どおりです（\(failures) 件の失敗）")

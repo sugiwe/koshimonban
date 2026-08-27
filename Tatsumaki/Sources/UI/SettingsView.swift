@@ -12,6 +12,9 @@ struct SettingsView: View {
             WorkBlocksTab()
                 .tabItem { Label("作業時間帯", systemImage: "calendar") }
 
+            VideosTab()
+                .tabItem { Label("動画", systemImage: "play.rectangle") }
+
             DeveloperTab()
                 .tabItem { Label("開発", systemImage: "hammer") }
         }

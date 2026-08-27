@@ -48,21 +48,6 @@ struct GeneralSettingsTab: View {
                 }
             }
 
-            Section("動画") {
-                if settingsStore.settings.videos.isEmpty {
-                    Text("未登録（テキストとカウントダウンのみ表示されます）")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(settingsStore.settings.videos) { video in
-                        LabeledContent(video.displayTitle) {
-                            Text(video.kind.displayName).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                Text("登録 UI は Phase 2 で追加します。")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-
             if !settingsStore.settings.validationErrors.isEmpty {
                 Section("設定の問題") {
                     ForEach(settingsStore.settings.validationErrors, id: \.self) { error in

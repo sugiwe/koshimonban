@@ -3,12 +3,14 @@ import SwiftUI
 struct OverlayRootView: View {
     @ObservedObject var session: BreakSession
     let isPrimary: Bool
+    let video: VideoEntry?
+    let playbackState: VideoPlaybackState?
 
     var body: some View {
         ZStack {
             Color(red: 0.05, green: 0.06, blue: 0.10).ignoresSafeArea()
             if isPrimary {
-                PrimaryOverlayView(session: session)
+                PrimaryOverlayView(session: session, video: video, playbackState: playbackState)
             } else {
                 SecondaryOverlayView(session: session)
             }
@@ -17,26 +19,40 @@ struct OverlayRootView: View {
     }
 }
 
-/// メインディスプレイ側。カウントダウンとボタンを出す。
+/// メインディスプレイ側。カウントダウン・動画・ボタン。
 private struct PrimaryOverlayView: View {
     @ObservedObject var session: BreakSession
+    let video: VideoEntry?
+    let playbackState: VideoPlaybackState?
+
+    /// 動画があるときはカウントダウンを小さくして、動画に場所を譲る。
+    private var hasVideo: Bool { video != nil && playbackState != nil }
 
     var body: some View {
-        VStack(spacing: 32) {
-            Spacer()
+        VStack(spacing: hasVideo ? 20 : 32) {
+            Spacer(minLength: hasVideo ? 24 : 0)
 
             Text("立ち上がってストレッチ")
-                .font(.system(size: 32, weight: .semibold))
+                .font(.system(size: hasVideo ? 24 : 32, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.85))
 
             Text(session.countdownText)
-                .font(.system(size: 140, weight: .thin, design: .rounded))
+                .font(.system(size: hasVideo ? 64 : 140, weight: .thin, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(.white)
-                .contentTransition(.numericText())
 
-            // Phase 2 でここに動画が入る。
-            Spacer()
+            if let video, let playbackState {
+                BreakVideoView(video: video, state: playbackState)
+                    .frame(maxWidth: 960, maxHeight: .infinity)
+                    .padding(.horizontal, 40)
+                if let title = video.title.isEmpty ? nil : video.title {
+                    Text(title)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.35))
+                }
+            } else {
+                Spacer()
+            }
 
             if session.phase == .choosingSkipReason {
                 SkipReasonPicker(session: session)
