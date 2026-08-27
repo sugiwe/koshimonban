@@ -23,8 +23,12 @@ final class Scheduler: ObservableObject {
     var onFire: ((ScheduleGrid.Slot, Date) -> Void)?
     /// オーバーレイが表示中か。二重発動を抑止するために参照する。
     var isOverlayVisible: () -> Bool = { false }
-    /// 発動しなかった回も含め、結果が確定したときに呼ばれる。Phase 3 で記録に繋ぐ。
+    /// 発動しなかった回も含め、結果が確定したときに呼ばれる。
     var onResult: ((ScheduleGrid.Slot, BreakResult, Date) -> Void)?
+    /// 発動の予告。1つの予定につき1回だけ呼ばれる。
+    var onPreNotify: ((ScheduleGrid.Slot, Int) -> Void)?
+    /// 予告を引っ込める（発動した、一時停止した、など）
+    var onCancelPreNotify: (() -> Void)?
 
     // MARK: 観測できる状態
 
@@ -51,6 +55,8 @@ final class Scheduler: ObservableObject {
 
     /// 今日すでに決着がついた発動予定（0:00 からの経過秒）
     private var resolvedSlots: Set<Int> = []
+    /// すでに予告を出した予定
+    private var preNotifiedSlots: Set<Int> = []
     private var resolvedDay: Date = .distantPast
     /// この時刻までは発動しない（復帰直後の猶予）
     private var graceUntil: Date?
@@ -101,12 +107,14 @@ final class Scheduler: ObservableObject {
     // MARK: 一時停止（逃げ道）
 
     func pause(for interval: TimeInterval) {
+        onCancelPreNotify?()
         pausedUntil = Date().addingTimeInterval(interval)
         log(.info, "一時停止しました（\(formatted(pausedUntil!)) まで）")
         tick()
     }
 
     func pauseForRestOfDay() {
+        onCancelPreNotify?()
         let endOfDay = calendar.startOfDay(for: Date()).addingTimeInterval(TimeInterval(ScheduleGrid.secondsPerDay))
         pausedUntil = endOfDay
         log(.info, "今日はもう発動しません")
@@ -155,6 +163,8 @@ final class Scheduler: ObservableObject {
         let slots = ScheduleGrid.slots(settings: settings, date: now, calendar: calendar)
         let nowSeconds = ScheduleGrid.secondsFromMidnight(for: now, calendar: calendar)
 
+        evaluatePreNotify(slots: slots, nowSeconds: nowSeconds)
+
         let due = slots.filter { $0.at <= nowSeconds && !resolvedSlots.contains($0.at) }
         guard let latest = due.last else { return }
 
@@ -189,6 +199,7 @@ final class Scheduler: ObservableObject {
         }
 
         resolvedSlots.insert(latest.at)
+        onCancelPreNotify?()
         let lateBy = nowSeconds - latest.at
         if lateBy >= Int(Self.tickInterval) {
             log(.fire, "発動（予定 \(display(latest.at)) / \(lateBy)秒遅れで追いつき）")
@@ -199,6 +210,21 @@ final class Scheduler: ObservableObject {
     }
 
     // MARK: 補助
+
+    /// 次の発動が近づいていれば予告を出す。1つの予定につき1回だけ。
+    private func evaluatePreNotify(slots: [ScheduleGrid.Slot], nowSeconds: Int) {
+        let leadSeconds = settings.effectivePreNotifySeconds
+        guard leadSeconds > 0, !isPaused, !isOverlayVisible() else { return }
+        guard !screenState.isScreenLocked else { return }
+        guard let next = slots.first(where: { $0.at > nowSeconds }) else { return }
+
+        let remaining = next.at - nowSeconds
+        guard remaining <= leadSeconds, !preNotifiedSlots.contains(next.at) else { return }
+
+        preNotifiedSlots.insert(next.at)
+        log(.info, "予告: \(display(next.at)) の発動まであと \(remaining)秒")
+        onPreNotify?(next, remaining)
+    }
 
     private func resolve(_ slot: ScheduleGrid.Slot, as result: BreakResult, at date: Date, note: String) {
         resolvedSlots.insert(slot.at)
@@ -212,6 +238,7 @@ final class Scheduler: ObservableObject {
         guard today != resolvedDay else { return }
         resolvedDay = today
         resolvedSlots.removeAll()
+        preNotifiedSlots.removeAll()
         // 「今日はもう停止」を日をまたいで持ち越さない
         if let pausedUntil, pausedUntil <= now {
             self.pausedUntil = nil

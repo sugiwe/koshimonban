@@ -7,6 +7,7 @@ struct TatsumakiApp: App {
     @StateObject private var settingsStore = SettingsStore.shared
     @StateObject private var scheduler = Scheduler.shared
     @StateObject private var logStore = LogStore.shared
+    @StateObject private var launchAgent = LaunchAgentManager.shared
 
     var body: some Scene {
         MenuBarExtra {
@@ -26,6 +27,7 @@ struct TatsumakiApp: App {
                 .environmentObject(settingsStore)
                 .environmentObject(scheduler)
                 .environmentObject(logStore)
+                .environmentObject(launchAgent)
         }
     }
 }
@@ -34,6 +36,13 @@ struct TatsumakiApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // LaunchAgent 登録直後は launchd がもう1つ起動してしまう。後発は黙って引き下がる。
+        if SingleInstanceGuard.shouldTerminateBecauseAnotherInstanceIsRunning() {
+            NSLog("[Tatsumaki] すでに起動しているインスタンスがあるため終了します")
+            NSApp.terminate(nil)
+            return
+        }
+
         // Info.plist の LSUIElement と重複するが、Xcode から直接実行した場合など
         // plist が効かない経路があるため明示しておく。
         NSApp.setActivationPolicy(.accessory)
@@ -78,6 +87,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // サボりのパターンを見るには、発動しなかった事実も必要なため。
         scheduler.onResult = { slot, result, date in
             BreakRecorder.record(slot: slot, result: result, at: date)
+        }
+
+        scheduler.onPreNotify = { _, remaining in
+            PreNotifyController.shared.show(secondsUntilBreak: remaining)
+        }
+        scheduler.onCancelPreNotify = {
+            PreNotifyController.shared.dismiss()
         }
     }
 
