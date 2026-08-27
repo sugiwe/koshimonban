@@ -15,6 +15,8 @@ struct AppSettings: Codable, Equatable {
     var videos: [VideoEntry]
     var launchAtLogin: Bool
     var debugMode: Bool
+    /// デバッグモード時、作業時間帯の判定を無視して常に作業中とみなす
+    var debugIgnoreWorkBlocks: Bool
 
     static let currentVersion = 1
 
@@ -34,12 +36,13 @@ struct AppSettings: Codable, Equatable {
         skipUnlockSeconds: 5,
         videos: [],
         launchAtLogin: true,
-        debugMode: false
+        debugMode: false,
+        debugIgnoreWorkBlocks: false
     )
 
     init(version: Int, workBlocks: [WorkBlock], intervalMinutes: Int, breakSeconds: Int,
          preNotifyMinutes: Int, skipUnlockSeconds: Int, videos: [VideoEntry],
-         launchAtLogin: Bool, debugMode: Bool) {
+         launchAtLogin: Bool, debugMode: Bool, debugIgnoreWorkBlocks: Bool) {
         self.version = version
         self.workBlocks = workBlocks
         self.intervalMinutes = intervalMinutes
@@ -49,6 +52,7 @@ struct AppSettings: Codable, Equatable {
         self.videos = videos
         self.launchAtLogin = launchAtLogin
         self.debugMode = debugMode
+        self.debugIgnoreWorkBlocks = debugIgnoreWorkBlocks
     }
 
     init(from decoder: Decoder) throws {
@@ -63,7 +67,8 @@ struct AppSettings: Codable, Equatable {
             skipUnlockSeconds: try c.decodeIfPresent(Int.self,          forKey: .skipUnlockSeconds) ?? d.skipUnlockSeconds,
             videos:            try c.decodeIfPresent([VideoEntry].self, forKey: .videos)            ?? d.videos,
             launchAtLogin:     try c.decodeIfPresent(Bool.self,         forKey: .launchAtLogin)     ?? d.launchAtLogin,
-            debugMode:         try c.decodeIfPresent(Bool.self,         forKey: .debugMode)         ?? d.debugMode
+            debugMode:         try c.decodeIfPresent(Bool.self,         forKey: .debugMode)         ?? d.debugMode,
+            debugIgnoreWorkBlocks: try c.decodeIfPresent(Bool.self,     forKey: .debugIgnoreWorkBlocks) ?? d.debugIgnoreWorkBlocks
         )
     }
 
