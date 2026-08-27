@@ -34,18 +34,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         MainActor.assumeIsolated {
-            let scheduler = Scheduler.shared
-            // Phase 1b でここをオーバーレイの表示に差し替える。
-            scheduler.onFire = { slot, _ in
-                NSLog("[Tatsumaki] オーバーレイを出すべき地点（Phase 1b で実装） slot=\(slot.at)")
-            }
-            scheduler.start()
+            wireSchedulerToOverlay()
+            Scheduler.shared.start()
         }
     }
 
     /// 設定ウィンドウを閉じてもアプリは常駐し続ける。
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    /// スケジューラとオーバーレイを繋ぐ。
+    @MainActor
+    private func wireSchedulerToOverlay() {
+        let scheduler = Scheduler.shared
+        let overlay = OverlayController.shared
+        let settings = SettingsStore.shared
+
+        scheduler.isOverlayVisible = { overlay.isVisible }
+
+        scheduler.onFire = { _, _ in
+            overlay.present(breakSeconds: settings.settings.breakSeconds,
+                            skipUnlockSeconds: settings.settings.skipUnlockSeconds)
+        }
+
+        overlay.onFinish = { result, reason, shownSeconds, _ in
+            // Phase 3 でここを記録の保存に繋ぐ。
+            let reasonText = reason.map { "・\($0.displayName)" } ?? ""
+            NSLog("[Tatsumaki] 休憩終了: \(result.displayName)\(reasonText) / 表示 \(shownSeconds)秒")
+            Scheduler.shared.noteBreakFinished(result: result, reason: reason, shownSeconds: shownSeconds)
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
