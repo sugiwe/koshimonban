@@ -285,4 +285,11 @@ final class Scheduler: ObservableObject {
     func clearEvents() {
         events.removeAll()
     }
+
+    /// オーバーレイ側で休憩が決着したことを受け取る。判定ログに残し、状態表示を更新する。
+    func noteBreakFinished(result: BreakResult, reason: SkipReason?, shownSeconds: Int) {
+        let reasonText = reason.map { "・\($0.displayName)" } ?? ""
+        log(.resolved, "休憩終了: \(result.displayName)\(reasonText)（表示 \(shownSeconds)秒）")
+        tick()
+    }
 }
