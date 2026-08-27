@@ -14,19 +14,24 @@ final class OverlayController: ObservableObject {
     @Published private(set) var isVisible = false
 
     /// 休憩が決着したときに呼ばれる。Phase 3 で記録に繋ぐ。
-    var onFinish: ((BreakResult, SkipReason?, Int, String?) -> Void)?
+    var onFinish: ((BreakOutcome) -> Void)?
 
     private var windows: [OverlayWindow] = []
     private var session: BreakSession?
     private var video: VideoEntry?
     private var playbackState: VideoPlaybackState?
+    private var scheduledSeconds = 0
+    private var firedAt = Date()
     private var screenChangeObserver: NSObjectProtocol?
 
     // MARK: 表示
 
-    func present(breakSeconds: Int, skipUnlockSeconds: Int, video: VideoEntry?) {
+    func present(breakSeconds: Int, skipUnlockSeconds: Int, video: VideoEntry?,
+                 scheduledSeconds: Int, firedAt: Date = Date()) {
         guard !isVisible else { return }
 
+        self.scheduledSeconds = scheduledSeconds
+        self.firedAt = firedAt
         self.video = video
         self.playbackState = video == nil ? nil : VideoPlaybackState()
 
@@ -34,9 +39,16 @@ final class OverlayController: ObservableObject {
         session.videoTitle = video?.displayTitle
         session.onFinish = { [weak self] result, reason, shownSeconds in
             guard let self else { return }
-            let videoTitle = self.session?.videoTitle
+            let outcome = BreakOutcome(
+                result: result,
+                skipReason: reason,
+                shownSeconds: shownSeconds,
+                videoTitle: self.session?.videoTitle,
+                scheduledSeconds: self.scheduledSeconds,
+                firedAt: self.firedAt
+            )
             self.dismiss()
-            self.onFinish?(result, reason, shownSeconds, videoTitle)
+            self.onFinish?(outcome)
         }
         self.session = session
 

@@ -6,21 +6,26 @@ struct TatsumakiApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var settingsStore = SettingsStore.shared
     @StateObject private var scheduler = Scheduler.shared
+    @StateObject private var logStore = LogStore.shared
 
     var body: some Scene {
         MenuBarExtra {
             MenuBarContent()
                 .environmentObject(settingsStore)
                 .environmentObject(scheduler)
+                .environmentObject(logStore)
         } label: {
-            // Phase 3 でここに当日の達成状況（3/5）を出す。
-            Image(systemName: scheduler.isPaused ? "figure.stand" : "figure.flexibility")
+            MenuBarLabel()
+                .environmentObject(scheduler)
+                .environmentObject(logStore)
+                .environmentObject(settingsStore)
         }
 
         Settings {
             SettingsView()
                 .environmentObject(settingsStore)
                 .environmentObject(scheduler)
+                .environmentObject(logStore)
         }
     }
 }
@@ -53,18 +58,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         scheduler.isOverlayVisible = { overlay.isVisible }
 
-        scheduler.onFire = { _, _ in
+        scheduler.onFire = { slot, firedAt in
             let video = VideoRotator.shared.next(from: settings.settings.videos)
             overlay.present(breakSeconds: settings.settings.breakSeconds,
                             skipUnlockSeconds: settings.settings.skipUnlockSeconds,
-                            video: video)
+                            video: video,
+                            scheduledSeconds: slot.at,
+                            firedAt: firedAt)
         }
 
-        overlay.onFinish = { result, reason, shownSeconds, _ in
-            // Phase 3 でここを記録の保存に繋ぐ。
-            let reasonText = reason.map { "・\($0.displayName)" } ?? ""
-            NSLog("[Tatsumaki] 休憩終了: \(result.displayName)\(reasonText) / 表示 \(shownSeconds)秒")
-            Scheduler.shared.noteBreakFinished(result: result, reason: reason, shownSeconds: shownSeconds)
+        overlay.onFinish = { outcome in
+            BreakRecorder.record(outcome)
+            Scheduler.shared.noteBreakFinished(result: outcome.result,
+                                               reason: outcome.skipReason,
+                                               shownSeconds: outcome.shownSeconds)
+        }
+
+        // 発動できなかった回（取りこぼし・一時停止）も記録に残す。
+        // サボりのパターンを見るには、発動しなかった事実も必要なため。
+        scheduler.onResult = { slot, result, date in
+            BreakRecorder.record(slot: slot, result: result, at: date)
         }
     }
 
