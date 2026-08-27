@@ -3,6 +3,7 @@ import AppKit
 
 struct GeneralSettingsTab: View {
     @EnvironmentObject private var settingsStore: SettingsStore
+    @EnvironmentObject private var launchAgent: LaunchAgentManager
 
     private var settings: Binding<AppSettings> { $settingsStore.settings }
 
@@ -46,6 +47,47 @@ struct GeneralSettingsTab: View {
                         Text("秒").foregroundStyle(.secondary)
                     }
                 }
+            }
+
+            Section {
+                Toggle("ログイン時に自動起動", isOn: Binding(
+                    get: { launchAgent.isInstalled },
+                    set: { enabled in
+                        if enabled { launchAgent.install() } else { launchAgent.uninstall() }
+                        settingsStore.settings.launchAtLogin = enabled
+                    }
+                ))
+
+                if launchAgent.isInstalled {
+                    Text(launchAgent.registeredPath ?? "")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1).truncationMode(.head)
+                }
+
+                if launchAgent.isStale {
+                    Label("登録されているパスが、いま動いているアプリと違います。もう一度オンにし直してください。",
+                          systemImage: "exclamationmark.triangle")
+                        .font(.caption).foregroundStyle(.orange)
+                }
+
+                if launchAgent.isOutsideApplications {
+                    Label("アプリが /Applications の外にあります。ビルド先が変わると自動起動が壊れるので、"
+                          + "常用するなら .app を /Applications に移してから登録し直してください。",
+                          systemImage: "info.circle")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
+                if let error = launchAgent.lastError {
+                    Label(error, systemImage: "xmark.octagon")
+                        .font(.caption).foregroundStyle(.red)
+                }
+            } header: {
+                Text("起動")
+            } footer: {
+                Text("LaunchAgent として登録します。異常終了した場合は自動で復帰しますが、"
+                     + "メニューの「終了」で終わらせた場合は起動し直しません。")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             if !settingsStore.settings.validationErrors.isEmpty {

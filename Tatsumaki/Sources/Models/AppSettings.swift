@@ -82,6 +82,12 @@ struct AppSettings: Codable, Equatable {
         debugMode ? intervalMinutes : intervalMinutes * 60
     }
 
+    /// 実際に使う予告の秒数（0 で無効）。
+    /// 間隔と単位を揃えないと、デバッグモードで常に予告が出続けてしまう。
+    var effectivePreNotifySeconds: Int {
+        debugMode ? preNotifyMinutes : preNotifyMinutes * 60
+    }
+
     /// 設定値の健全性チェック。UI のバリデーション表示に使う。
     var validationErrors: [String] {
         var errors: [String] = []
