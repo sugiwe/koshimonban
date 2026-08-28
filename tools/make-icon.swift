@@ -33,24 +33,44 @@ func makeIcon(size: Int) -> NSImage {
     gradient?.draw(in: rect, angle: -90)
     context.restoreGState()
 
-    // 竜巻を思わせる円弧を薄く重ねる
+    // 門の意匠。鳥居のように、笠木・貫・二本の柱で構成する。
+    // 主役は犬なので、背景に沈む濃さに留める。
     context.saveGState()
     path.addClip()
-    context.setStrokeColor(NSColor.white.withAlphaComponent(0.07).cgColor)
-    context.setLineWidth(dimension * 0.035)
-    for index in 0..<3 {
-        let scale = 0.78 - CGFloat(index) * 0.18
-        let arcRect = CGRect(x: rect.midX - rect.width * scale / 2,
-                             y: rect.midY - rect.height * scale / 2 + rect.height * CGFloat(index) * 0.12,
-                             width: rect.width * scale, height: rect.height * scale * 0.42)
-        context.strokeEllipse(in: arcRect)
+    NSColor.white.withAlphaComponent(0.22).setFill()
+
+    let gateWidth = rect.width * 0.80
+    let gateLeft = rect.midX - gateWidth / 2
+    let postWidth = rect.width * 0.075
+    let lintelHeight = rect.height * 0.072
+    let lintelY = rect.maxY - rect.height * 0.22
+    let postBottom = rect.minY + rect.height * 0.08
+    let overhang = rect.width * 0.055
+
+    // 笠木（一番上の横木。両端が柱より外に張り出す）
+    NSBezierPath(roundedRect: CGRect(x: gateLeft - overhang, y: lintelY,
+                                     width: gateWidth + overhang * 2, height: lintelHeight),
+                 xRadius: lintelHeight / 2, yRadius: lintelHeight / 2).fill()
+
+    // 貫（笠木の下を通る細い横木）
+    let beamHeight = lintelHeight * 0.52
+    NSBezierPath(roundedRect: CGRect(x: gateLeft, y: lintelY - rect.height * 0.11,
+                                     width: gateWidth, height: beamHeight),
+                 xRadius: beamHeight / 2, yRadius: beamHeight / 2).fill()
+
+    // 柱（左右）
+    for x in [gateLeft, gateLeft + gateWidth - postWidth] {
+        NSBezierPath(roundedRect: CGRect(x: x, y: postBottom,
+                                         width: postWidth, height: lintelY - postBottom),
+                     xRadius: postWidth / 2, yRadius: postWidth / 2).fill()
     }
     context.restoreGState()
 
+    // 門の前に座る犬。
     // シンボルは黒で描かれるので、いったん単独の画像に描いてから白く着色する。
     // 背景の上で直接 sourceAtop を使うと、背景が不透明なため矩形全体が塗られてしまう。
-    if let symbol = NSImage(systemSymbolName: "figure.flexibility", accessibilityDescription: nil) {
-        let configuration = NSImage.SymbolConfiguration(pointSize: dimension * 0.52, weight: .regular)
+    if let symbol = NSImage(systemSymbolName: "dog.fill", accessibilityDescription: nil) {
+        let configuration = NSImage.SymbolConfiguration(pointSize: dimension * 0.34, weight: .regular)
         if let configured = symbol.withSymbolConfiguration(configuration) {
             let symbolSize = configured.size
             let tinted = NSImage(size: symbolSize)
@@ -61,7 +81,7 @@ func makeIcon(size: Int) -> NSImage {
             tinted.unlockFocus()
 
             let target = NSRect(x: (dimension - symbolSize.width) / 2,
-                                y: (dimension - symbolSize.height) / 2,
+                                y: rect.minY + rect.height * 0.17,
                                 width: symbolSize.width, height: symbolSize.height)
             tinted.draw(in: target, from: .zero, operation: .sourceOver, fraction: 1.0)
         }

@@ -1,4 +1,4 @@
-# Tatsumaki スパイク検証
+# Koshimonban スパイク検証
 
 本実装に入る前に、設計の前提が macOS 15 で本当に成立するかだけを確かめる使い捨てアプリ。
 確かめたいのは次の2点のみ。
@@ -10,7 +10,7 @@
 
 ```bash
 ./build.sh
-./build/TatsumakiSpike.app/Contents/MacOS/TatsumakiSpike --mode 1 --delay 10
+./build/KoshimonbanSpike.app/Contents/MacOS/KoshimonbanSpike --mode 1 --delay 10
 ```
 
 実行すると 10 秒待つので、その間に **別アプリを緑ボタンでネイティブフルスクリーンにして**待つ。
@@ -52,5 +52,5 @@ mode 1 が仕様書の案。ダメなら 2 → 4 の順に試す。
 `--duration` 秒で自動的に閉じる。それでも困ったら別ターミナルから:
 
 ```bash
-pkill -x TatsumakiSpike
+pkill -x KoshimonbanSpike
 ```

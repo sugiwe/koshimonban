@@ -1,5 +1,5 @@
 #!/bin/bash
-# アプリアイコンを生成して Tatsumaki/Sources/Resources/AppIcon.icns に置く。
+# アプリアイコンを生成して Koshimonban/Sources/Resources/AppIcon.icns に置く。
 # デザインを変えたいときは make-icon.swift を編集してこれを実行する。
 set -euo pipefail
 
@@ -23,6 +23,6 @@ cp "$WORK/icon_512.png"  "$ICONSET/icon_256x256@2x.png"
 cp "$WORK/icon_512.png"  "$ICONSET/icon_512x512.png"
 cp "$WORK/icon_1024.png" "$ICONSET/icon_512x512@2x.png"
 
-mkdir -p Tatsumaki/Sources/Resources
-iconutil -c icns "$ICONSET" -o Tatsumaki/Sources/Resources/AppIcon.icns
-echo "生成しました: Tatsumaki/Sources/Resources/AppIcon.icns"
+mkdir -p Koshimonban/Sources/Resources
+iconutil -c icns "$ICONSET" -o Koshimonban/Sources/Resources/AppIcon.icns
+echo "生成しました: Koshimonban/Sources/Resources/AppIcon.icns"

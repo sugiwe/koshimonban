@@ -1,4 +1,4 @@
-# Tatsumaki
+# 腰門番（こしもんばん）
 
 座りっぱなしを防ぐための macOS メニューバーアプリ。
 決まった時刻に画面を物理的に奪って、立ち上がってストレッチさせる。
@@ -23,23 +23,23 @@ Claude Code に読ませて実行してもらう前提で書いてあり、
 ## ビルドと実行
 
 ```bash
-git clone https://github.com/sugiwe/tatsumaki.git
-cd tatsumaki
-xcodebuild -project Tatsumaki.xcodeproj -scheme Tatsumaki -configuration Debug build
+git clone https://github.com/sugiwe/koshimonban.git
+cd koshimonban
+xcodebuild -project Koshimonban.xcodeproj -scheme Koshimonban -configuration Debug build
 ```
 
 ビルドした `.app` の場所は次のコマンドで分かる。
 
 ```bash
-xcodebuild -project Tatsumaki.xcodeproj -scheme Tatsumaki -configuration Debug \
+xcodebuild -project Koshimonban.xcodeproj -scheme Koshimonban -configuration Debug \
   -showBuildSettings 2>/dev/null | grep -m1 " BUILT_PRODUCTS_DIR" | awk '{print $3}'
 ```
 
 起動する:
 
 ```bash
-open "$(xcodebuild -project Tatsumaki.xcodeproj -scheme Tatsumaki -configuration Debug \
-  -showBuildSettings 2>/dev/null | grep -m1 ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/Tatsumaki.app"
+open "$(xcodebuild -project Koshimonban.xcodeproj -scheme Koshimonban -configuration Debug \
+  -showBuildSettings 2>/dev/null | grep -m1 ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/Koshimonban.app"
 ```
 
 Dock にはアイコンが出ない（`LSUIElement`）。メニューバー右上の人型アイコンから操作する。
@@ -56,7 +56,7 @@ xcodebuild -runFirstLaunch
 ## データの保存先
 
 ```
-~/Library/Application Support/Tatsumaki/
+~/Library/Application Support/Koshimonban/
   settings.json        設定
   logs/YYYY-MM.json    記録（Phase 3 以降）
 ```
@@ -71,7 +71,7 @@ JSON なので直接開いて編集できる。読めない状態になってい
 ## 自動起動について
 
 ログイン時の自動起動は `SMAppService` ではなく **LaunchAgent** で行う
-(`~/Library/LaunchAgents/net.sugiwe.tatsumaki.plist`)。設定の「一般」タブから登録する。
+(`~/Library/LaunchAgents/net.sugiwe.koshimonban.plist`)。設定の「一般」タブから登録する。
 
 `SMAppService` を使わない理由は、正しいコード署名を要求するため。
 Apple Developer Program に入らないローカルビルドでは、無料 Apple ID の証明書が
@@ -91,14 +91,14 @@ Apple Developer Program に入らないローカルビルドでは、無料 Appl
 
 Xcode が入れられる Mac なら、上のビルド手順をそのまま実行すればよい。
 
-Xcode を入れられない Mac に持ち込む場合は、ビルド済みの `Tatsumaki.app` を
+Xcode を入れられない Mac に持ち込む場合は、ビルド済みの `Koshimonban.app` を
 コピーする。ad-hoc 署名は特定のマシンに紐づかないため、そのまま動く。
 ただし AirDrop やダウンロード経由で転送すると Gatekeeper に隔離属性を付けられ、
 「開発元を確認できないため開けません」と出る。その場合は次のいずれかで通す。
 
 - `.app` を右クリック →「開く」→ ダイアログで「開く」
 - システム設定 →「プライバシーとセキュリティ」→「このまま開く」
-- `xattr -d com.apple.quarantine /path/to/Tatsumaki.app`
+- `xattr -d com.apple.quarantine /path/to/Koshimonban.app`
 
 `scp` や USB メモリ経由なら隔離属性が付かないことが多く、そのまま起動できる。
 
@@ -143,7 +143,7 @@ Phase -1 で使った検証用の使い捨てアプリ。Xcode 不要で `swiftc
 ## 構成
 
 ```
-Tatsumaki/Sources/
+Koshimonban/Sources/
   App/         エントリポイント、ライフサイクル
   Models/      設定・作業時間帯・記録などの型
   Scheduling/  発動判定、画面ロックとスリープの検知
@@ -155,5 +155,5 @@ Tatsumaki/Sources/
   Resources/   アプリアイコン
 ```
 
-`Tatsumaki/Sources` は Xcode の buildable folder として登録してある。
+`Koshimonban/Sources` は Xcode の buildable folder として登録してある。
 **ファイルを増やしても `.xcodeproj` を編集する必要はない。**

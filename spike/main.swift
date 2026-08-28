@@ -1,4 +1,4 @@
-// Tatsumaki スパイク検証
+// Koshimonban スパイク検証
 //
 // 目的: 本実装に入る前に、以下の2点が macOS 15 で本当に成立するかだけを確かめる。
 //   1. 他アプリのネイティブフルスクリーンの「上」にオーバーレイが出るか
@@ -6,7 +6,7 @@
 //
 // 使い方:
 //   ./build.sh
-//   ./build/TatsumakiSpike.app/Contents/MacOS/TatsumakiSpike --mode 1 --delay 8
+//   ./build/KoshimonbanSpike.app/Contents/MacOS/KoshimonbanSpike --mode 1 --delay 8
 //
 // --mode で collectionBehavior の組み合わせを切り替えて比較する。
 
@@ -77,7 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         print("""
 
         ────────────────────────────────────────────────────────
-         Tatsumaki スパイク検証
+         Koshimonban スパイク検証
         ────────────────────────────────────────────────────────
          mode        : \(mode)  \(label)
          window level: \(levelOverride.map(String.init) ?? "CGShieldingWindowLevel() = \(Int(CGShieldingWindowLevel()))")

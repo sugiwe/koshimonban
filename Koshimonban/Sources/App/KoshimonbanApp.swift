@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 @main
-struct TatsumakiApp: App {
+struct KoshimonbanApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var settingsStore = SettingsStore.shared
     @StateObject private var scheduler = Scheduler.shared
@@ -38,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // LaunchAgent 登録直後は launchd がもう1つ起動してしまう。後発は黙って引き下がる。
         if SingleInstanceGuard.shouldTerminateBecauseAnotherInstanceIsRunning() {
-            NSLog("[Tatsumaki] すでに起動しているインスタンスがあるため終了します")
+            NSLog("[Koshimonban] すでに起動しているインスタンスがあるため終了します")
             NSApp.terminate(nil)
             return
         }

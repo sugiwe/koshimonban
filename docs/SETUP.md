@@ -77,15 +77,15 @@ gh auth login
 クローン:
 
 ```bash
-gh repo clone sugiwe/tatsumaki
-cd tatsumaki
+gh repo clone sugiwe/koshimonban
+cd koshimonban
 ```
 
 `gh` を使わない場合は SSH でもよい（SSH 鍵が GitHub に登録済みであること）:
 
 ```bash
-git clone git@github.com:sugiwe/tatsumaki.git
-cd tatsumaki
+git clone git@github.com:sugiwe/koshimonban.git
+cd koshimonban
 ```
 
 ---
@@ -108,7 +108,7 @@ Xcode がなくても走る。ここが通れば、少なくとも計算部分�
 ./tools/deploy.sh
 ```
 
-ビルド → 既存プロセスの終了 → `/Applications/Tatsumaki.app` にコピー → 起動、までを行う。
+ビルド → 既存プロセスの終了 → `/Applications/Koshimonban.app` にコピー → 起動、までを行う。
 
 **なぜ /Applications なのか**: 次の手順で登録する LaunchAgent には
 **アプリの実行ファイルのパスが直接書き込まれる**。ビルド出力先（DerivedData）のままだと
@@ -117,11 +117,11 @@ Xcode の都合で場所が変わりうるので、固定の場所に置く。
 **確認**:
 
 ```bash
-ps -Ao command | grep "Tatsumaki.app" | grep -v grep
-pgrep -x Tatsumaki | wc -l          # 1 であること（多重起動していない）
+ps -Ao command | grep "Koshimonban.app" | grep -v grep
+pgrep -x Koshimonban | wc -l          # 1 であること（多重起動していない）
 ```
 
-`/Applications/Tatsumaki.app/Contents/MacOS/Tatsumaki` が動いていれば OK。
+`/Applications/Koshimonban.app/Contents/MacOS/Koshimonban` が動いていれば OK。
 
 **人間がやること**: 画面右上のメニューバーに人型のアイコンが出ていることを目視で確認する。
 Dock にはアイコンが出ない（`LSUIElement`）ので、そちらには現れない。
@@ -139,11 +139,11 @@ Dock にはアイコンが出ない（`LSUIElement`）ので、そちらには�
    - 「作業時間帯を追加」で増やせる、ゴミ箱で消せる
 3. 下部の**「今日の発動予定」**に実際の発動時刻が並ぶので、意図どおりか確認する
 
-設定は `~/Library/Application Support/Tatsumaki/settings.json` に保存される。
+設定は `~/Library/Application Support/Koshimonban/settings.json` に保存される。
 Claude Code から中身を確認したい場合:
 
 ```bash
-cat ~/Library/Application\ Support/Tatsumaki/settings.json
+cat ~/Library/Application\ Support/Koshimonban/settings.json
 ```
 
 ### 発動時刻の決まり方
@@ -179,17 +179,17 @@ cat ~/Library/Application\ Support/Tatsumaki/settings.json
 
 設定 →「一般」タブ →「起動」セクション →「**ログイン時に自動起動**」をオン。
 
-オンにすると下に登録先のパスが表示される。`/Applications/Tatsumaki.app/...` になっていること。
+オンにすると下に登録先のパスが表示される。`/Applications/Koshimonban.app/...` になっていること。
 「/Applications の外にあります」という注意書きが出ていたら、手順4をやり直す。
 
 **確認**（Claude Code が実行してよい）:
 
 ```bash
-cat ~/Library/LaunchAgents/net.sugiwe.tatsumaki.plist
-launchctl print gui/$(id -u)/net.sugiwe.tatsumaki | head -20
+cat ~/Library/LaunchAgents/net.sugiwe.koshimonban.plist
+launchctl print gui/$(id -u)/net.sugiwe.koshimonban | head -20
 ```
 
-plist の `ProgramArguments` が `/Applications/Tatsumaki.app/Contents/MacOS/Tatsumaki` を
+plist の `ProgramArguments` が `/Applications/Koshimonban.app/Contents/MacOS/Koshimonban` を
 指していれば OK。
 
 ### 仕組みの補足
@@ -230,7 +230,7 @@ plist の `ProgramArguments` が `/Applications/Tatsumaki.app/Contents/MacOS/Tat
 **確認**（Claude Code が実行してよい）:
 
 ```bash
-cat ~/Library/Application\ Support/Tatsumaki/logs/$(date +%Y-%m).json
+cat ~/Library/Application\ Support/Koshimonban/logs/$(date +%Y-%m).json
 ```
 
 ### 8-3. 再起動しても立ち上がるか
@@ -248,7 +248,7 @@ cat ~/Library/Application\ Support/Tatsumaki/logs/$(date +%Y-%m).json
 | --- | --- |
 | 今は発動してほしくない | メニューバーから「30分停止」「1時間停止」「今日はもう停止」 |
 | オーバーレイから抜けたい | 「終わった」または「スキップ」。カウントダウンが0になれば必ず閉じる |
-| アプリごと止めたい | メニューバーから「Tatsumaki を終了」、または `pkill -x Tatsumaki` |
+| アプリごと止めたい | メニューバーから「Koshimonban を終了」、または `pkill -x Koshimonban` |
 | 自動起動をやめたい | 設定 →「一般」→「ログイン時に自動起動」をオフ |
 
 `Esc` では**閉じない**（意図的にそうしてある）。
@@ -257,7 +257,7 @@ cat ~/Library/Application\ Support/Tatsumaki/logs/$(date +%Y-%m).json
 
 ## 記録は Mac ごとに別々になる
 
-`~/Library/Application Support/Tatsumaki/` はそのマシンのローカル。
+`~/Library/Application Support/Koshimonban/` はそのマシンのローカル。
 複数の Mac で使うと記録が分裂し、達成率やヒートマップがそれぞれの Mac の分しか映らない。
 同期は v1 の対象外。
 
@@ -280,13 +280,13 @@ git pull
 
 ```bash
 # 設定と記録
-open ~/Library/Application\ Support/Tatsumaki/
+open ~/Library/Application\ Support/Koshimonban/
 
 # アプリのログ（発動判定の記録が NSLog で出ている）
-log show --predicate 'process == "Tatsumaki"' --last 1h --info
+log show --predicate 'process == "Koshimonban"' --last 1h --info
 
 # ビルドが失敗したとき
-cat /tmp/tatsumaki-build.log | grep error:
+cat /tmp/koshimonban-build.log | grep error:
 ```
 
 設定画面の「開発」タブに、スケジューラの状態と判定ログがそのまま出ている。

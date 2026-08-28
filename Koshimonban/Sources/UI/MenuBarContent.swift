@@ -39,7 +39,7 @@ struct MenuBarContent: View {
 
         Divider()
 
-        Button("Tatsumaki を終了") {
+        Button("腰門番を終了") {
             settingsStore.saveNow()
             NSApplication.shared.terminate(nil)
         }

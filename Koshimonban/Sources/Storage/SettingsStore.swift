@@ -28,7 +28,7 @@ final class SettingsStore: ObservableObject {
         do {
             try AppPaths.ensureDirectories()
         } catch {
-            NSLog("[Tatsumaki] データディレクトリを作成できませんでした: \(error)")
+            NSLog("[Koshimonban] データディレクトリを作成できませんでした: \(error)")
         }
 
         let (loaded, warning) = Self.load()
@@ -81,7 +81,7 @@ final class SettingsStore: ObservableObject {
             // .atomic: 書き込み途中で落ちても既存ファイルを壊さない
             try data.write(to: AppPaths.settingsFile, options: .atomic)
         } catch {
-            NSLog("[Tatsumaki] settings.json を保存できませんでした: \(error)")
+            NSLog("[Koshimonban] settings.json を保存できませんでした: \(error)")
         }
     }
 

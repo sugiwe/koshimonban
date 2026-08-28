@@ -60,7 +60,7 @@ final class LogStore: ObservableObject {
         } catch {
             // 壊れていても消さない。退避して、その月は空として続ける。
             AppPaths.quarantine(url)
-            NSLog("[Tatsumaki] \(month) の記録を読めませんでした: \(error.localizedDescription)")
+            NSLog("[Koshimonban] \(month) の記録を読めませんでした: \(error.localizedDescription)")
         }
     }
 
@@ -84,7 +84,7 @@ final class LogStore: ObservableObject {
             let data = try encoder.encode(entries)
             try data.write(to: AppPaths.logFile(for: date), options: .atomic)
         } catch {
-            NSLog("[Tatsumaki] 記録を保存できませんでした: \(error.localizedDescription)")
+            NSLog("[Koshimonban] 記録を保存できませんでした: \(error.localizedDescription)")
         }
     }
 
@@ -128,7 +128,7 @@ final class LogStore: ObservableObject {
             }
         }
         revision += 1
-        NSLog("[Tatsumaki] ダミーデータを \(written) 日分生成しました")
+        NSLog("[Koshimonban] ダミーデータを \(written) 日分生成しました")
     }
 
     /// 生成したダミーを含め、記録を全部消す。

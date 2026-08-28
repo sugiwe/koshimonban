@@ -1,6 +1,10 @@
-# Tatsumaki — ストレッチ強制 macOS アプリ 実装仕様書
+# 腰門番 — ストレッチ強制 macOS アプリ 実装仕様書
 
-アプリ名: `Tatsumaki`（竜巻） / Bundle Identifier: `net.sugiwe.tatsumaki`
+表示名: `腰門番`（こしもんばん） / 内部名: `Koshimonban` / Bundle Identifier: `net.sugiwe.koshimonban`
+
+**名前の由来**: 門番の仕事は「守る」というより「**通さない**」こと。
+このアプリのオーバーレイは比喩ではなく、物理的に作業へ戻る道を塞ぐ門そのものである。
+UI の文言も「通す／通さない」を基本語彙とする。
 
 ---
 
@@ -48,11 +52,11 @@
 
 - **`.xcodeproj` / `project.pbxproj` を手で編集しないこと。** 高確率で壊れる。
   最初の空プロジェクトは人間が Xcode の「macOS App」テンプレートから1回だけ作成する。
-- ソースは `Tatsumaki/Sources/` 配下に置き、Xcode 側では**フォルダ参照（buildable folder）**として
+- ソースは `Koshimonban/Sources/` 配下に置き、Xcode 側では**フォルダ参照（buildable folder）**として
   追加しておく。こうしておけばファイルを増やしても Xcode プロジェクトの編集が不要になる。
 - ビルド確認は CLI から行うこと:
   ```
-  xcodebuild -project Tatsumaki.xcodeproj -scheme Tatsumaki -configuration Debug build
+  xcodebuild -project Koshimonban.xcodeproj -scheme Koshimonban -configuration Debug build
   ```
 - 実行時の挙動（オーバーレイが本当に最前面に出るか等）は人間の目視確認が必要。
   各フェーズの末尾に「人間が確認すること」を明記してあるので、そこで一旦止めて報告すること。
@@ -250,7 +254,7 @@
 
 ### 3.6 ログイン時の自動起動（LaunchAgent 方式）
 
-`SMAppService.mainApp` ではなく、**`~/Library/LaunchAgents/net.sugiwe.tatsumaki.plist` を
+`SMAppService.mainApp` ではなく、**`~/Library/LaunchAgents/net.sugiwe.koshimonban.plist` を
 アプリ自身が書き出す方式**を採る。
 
 **理由**: `SMAppService` は正しいコード署名を要求する。Apple Developer Program に入らない
@@ -274,7 +278,7 @@
 
 ## 4. データ
 
-保存先: `~/Library/Application Support/Tatsumaki/`
+保存先: `~/Library/Application Support/Koshimonban/`
 
 ```
 settings.json          設定

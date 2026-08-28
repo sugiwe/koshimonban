@@ -306,7 +306,7 @@ final class Scheduler: ObservableObject {
     private func log(_ kind: Event.Kind, _ message: String) {
         events.append(Event(at: Date(), kind: kind, message: message))
         if events.count > 200 { events.removeFirst(events.count - 200) }
-        NSLog("[Tatsumaki] \(message)")
+        NSLog("[Koshimonban] \(message)")
     }
 
     func clearEvents() {

@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		1A0000000000000000000003 /* Tatsumaki.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tatsumaki.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A0000000000000000000003 /* Koshimonban.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Koshimonban.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		1A0000000000000000000006 /* Sources */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Tatsumaki/Sources; sourceTree = "<group>"; };
+		1A0000000000000000000006 /* Sources */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Koshimonban/Sources; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,7 +36,7 @@
 		1A0000000000000000000005 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				1A0000000000000000000003 /* Tatsumaki.app */,
+				1A0000000000000000000003 /* Koshimonban.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -44,9 +44,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1A0000000000000000000002 /* Tatsumaki */ = {
+		1A0000000000000000000002 /* Koshimonban */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1A000000000000000000000B /* Build configuration list for PBXNativeTarget "Tatsumaki" */;
+			buildConfigurationList = 1A000000000000000000000B /* Build configuration list for PBXNativeTarget "Koshimonban" */;
 			buildPhases = (
 				1A0000000000000000000007 /* Sources */,
 				1A0000000000000000000008 /* Frameworks */,
@@ -59,11 +59,11 @@
 			fileSystemSynchronizedGroups = (
 				1A0000000000000000000006 /* Sources */,
 			);
-			name = Tatsumaki;
+			name = Koshimonban;
 			packageProductDependencies = (
 			);
-			productName = Tatsumaki;
-			productReference = 1A0000000000000000000003 /* Tatsumaki.app */;
+			productName = Koshimonban;
+			productReference = 1A0000000000000000000003 /* Koshimonban.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -81,7 +81,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 1A000000000000000000000A /* Build configuration list for PBXProject "Tatsumaki" */;
+			buildConfigurationList = 1A000000000000000000000A /* Build configuration list for PBXProject "Koshimonban" */;
 			developmentRegion = ja;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -96,7 +96,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				1A0000000000000000000002 /* Tatsumaki */,
+				1A0000000000000000000002 /* Koshimonban */,
 			);
 		};
 /* End PBXProject section */
@@ -172,13 +172,13 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Tatsumaki/Info.plist;
+				INFOPLIST_FILE = Koshimonban/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = net.sugiwe.tatsumaki;
+				PRODUCT_BUNDLE_IDENTIFIER = net.sugiwe.koshimonban;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -197,13 +197,13 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Tatsumaki/Info.plist;
+				INFOPLIST_FILE = Koshimonban/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = net.sugiwe.tatsumaki;
+				PRODUCT_BUNDLE_IDENTIFIER = net.sugiwe.koshimonban;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -214,7 +214,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1A000000000000000000000A /* Build configuration list for PBXProject "Tatsumaki" */ = {
+		1A000000000000000000000A /* Build configuration list for PBXProject "Koshimonban" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1A000000000000000000000C /* Debug */,
@@ -223,7 +223,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1A000000000000000000000B /* Build configuration list for PBXNativeTarget "Tatsumaki" */ = {
+		1A000000000000000000000B /* Build configuration list for PBXNativeTarget "Koshimonban" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1A000000000000000000000E /* Debug */,
