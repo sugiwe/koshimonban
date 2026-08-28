@@ -12,15 +12,15 @@ OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 
 swiftc -O -o "$OUT/gridtest" \
-    Tatsumaki/Sources/Models/TimeOfDay.swift \
-    Tatsumaki/Sources/Models/WorkBlock.swift \
-    Tatsumaki/Sources/Models/VideoEntry.swift \
-    Tatsumaki/Sources/Models/AppSettings.swift \
-    Tatsumaki/Sources/Models/BreakResult.swift \
-    Tatsumaki/Sources/Models/SkipReason.swift \
-    Tatsumaki/Sources/Models/BreakRecord.swift \
-    Tatsumaki/Sources/Scheduling/ScheduleGrid.swift \
-    Tatsumaki/Sources/Video/YouTubeURL.swift \
+    Koshimonban/Sources/Models/TimeOfDay.swift \
+    Koshimonban/Sources/Models/WorkBlock.swift \
+    Koshimonban/Sources/Models/VideoEntry.swift \
+    Koshimonban/Sources/Models/AppSettings.swift \
+    Koshimonban/Sources/Models/BreakResult.swift \
+    Koshimonban/Sources/Models/SkipReason.swift \
+    Koshimonban/Sources/Models/BreakRecord.swift \
+    Koshimonban/Sources/Scheduling/ScheduleGrid.swift \
+    Koshimonban/Sources/Video/YouTubeURL.swift \
     tests/ScheduleGridTests/main.swift
 
 "$OUT/gridtest"

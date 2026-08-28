@@ -16,7 +16,7 @@ final class LaunchAgentManager: ObservableObject {
 
     static let shared = LaunchAgentManager()
 
-    static let label = "net.sugiwe.tatsumaki"
+    static let label = "net.sugiwe.koshimonban"
 
     static var plistURL: URL {
         FileManager.default.homeDirectoryForCurrentUser

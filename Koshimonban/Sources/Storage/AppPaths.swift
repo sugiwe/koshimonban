@@ -2,11 +2,11 @@ import Foundation
 
 /// アプリのデータ置き場。
 ///
-/// ~/Library/Application Support/Tatsumaki/
+/// ~/Library/Application Support/Koshimonban/
 ///   settings.json
 ///   logs/YYYY-MM.json
 enum AppPaths {
-    static let directoryName = "Tatsumaki"
+    static let directoryName = "Koshimonban"
 
     static var supportDirectory: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -43,6 +43,6 @@ enum AppPaths {
         let stamp = formatter.string(from: Date())
         let destination = url.appendingPathExtension("corrupt-\(stamp)")
         try? FileManager.default.moveItem(at: url, to: destination)
-        NSLog("[Tatsumaki] 壊れたファイルを退避しました: \(destination.path)")
+        NSLog("[Koshimonban] 壊れたファイルを退避しました: \(destination.path)")
     }
 }

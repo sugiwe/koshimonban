@@ -6,9 +6,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "1A0000000000000000000002"
-               BuildableName = "Tatsumaki.app"
-               BlueprintName = "Tatsumaki"
-               ReferencedContainer = "container:Tatsumaki.xcodeproj">
+               BuildableName = "Koshimonban.app"
+               BlueprintName = "Koshimonban"
+               ReferencedContainer = "container:Koshimonban.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -22,9 +22,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "1A0000000000000000000002"
-            BuildableName = "Tatsumaki.app"
-            BlueprintName = "Tatsumaki"
-            ReferencedContainer = "container:Tatsumaki.xcodeproj">
+            BuildableName = "Koshimonban.app"
+            BlueprintName = "Koshimonban"
+            ReferencedContainer = "container:Koshimonban.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -33,9 +33,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "1A0000000000000000000002"
-            BuildableName = "Tatsumaki.app"
-            BlueprintName = "Tatsumaki"
-            ReferencedContainer = "container:Tatsumaki.xcodeproj">
+            BuildableName = "Koshimonban.app"
+            BlueprintName = "Koshimonban"
+            ReferencedContainer = "container:Koshimonban.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

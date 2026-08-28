@@ -8,15 +8,15 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-APP_NAME="Tatsumaki"
-BUNDLE_ID="net.sugiwe.tatsumaki"
+APP_NAME="Koshimonban"
+BUNDLE_ID="net.sugiwe.koshimonban"
 DESTINATION="/Applications/${APP_NAME}.app"
 
 echo "==> ビルド中..."
 xcodebuild -project "${APP_NAME}.xcodeproj" -scheme "${APP_NAME}" \
-    -configuration Debug build > /tmp/tatsumaki-build.log 2>&1 || {
+    -configuration Debug build > /tmp/koshimonban-build.log 2>&1 || {
     echo "ビルドに失敗しました。詳細:"
-    grep -E "error:" /tmp/tatsumaki-build.log | head -20
+    grep -E "error:" /tmp/koshimonban-build.log | head -20
     exit 1
 }
 
@@ -35,7 +35,7 @@ pkill -x "${APP_NAME}" 2>/dev/null || true
 if [ -d "$DESTINATION" ]; then
     EXISTING_ID=$(defaults read "${DESTINATION}/Contents/Info.plist" CFBundleIdentifier 2>/dev/null || echo "")
     if [ "$EXISTING_ID" != "$BUNDLE_ID" ]; then
-        echo "${DESTINATION} は Tatsumaki ではないようです（${EXISTING_ID}）。中断します。"
+        echo "${DESTINATION} は Koshimonban ではないようです（${EXISTING_ID}）。中断します。"
         exit 1
     fi
     rm -rf "$DESTINATION"

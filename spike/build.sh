@@ -5,7 +5,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-APP_NAME="TatsumakiSpike"
+APP_NAME="KoshimonbanSpike"
 BUNDLE="build/${APP_NAME}.app"
 
 rm -rf build
@@ -16,9 +16,9 @@ cat > "${BUNDLE}/Contents/Info.plist" <<'PLIST'
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key>            <string>TatsumakiSpike</string>
-    <key>CFBundleExecutable</key>      <string>TatsumakiSpike</string>
-    <key>CFBundleIdentifier</key>      <string>net.sugiwe.tatsumaki.spike</string>
+    <key>CFBundleName</key>            <string>KoshimonbanSpike</string>
+    <key>CFBundleExecutable</key>      <string>KoshimonbanSpike</string>
+    <key>CFBundleIdentifier</key>      <string>net.sugiwe.koshimonban.spike</string>
     <key>CFBundlePackageType</key>     <string>APPL</string>
     <key>CFBundleShortVersionString</key> <string>0.1</string>
     <key>LSMinimumSystemVersion</key>  <string>14.0</string>

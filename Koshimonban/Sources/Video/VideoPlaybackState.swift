@@ -56,7 +56,7 @@ final class VideoPlaybackState: ObservableObject {
         timeoutTask = nil
         guard !hasFailed else { return }
         status = .failed(reason)
-        NSLog("[Tatsumaki] 動画の再生に失敗: \(reason)")
+        NSLog("[Koshimonban] 動画の再生に失敗: \(reason)")
     }
 
     func invalidate() {
