@@ -1,20 +1,13 @@
-# 別の Mac にセットアップする
+# セットアップ手順
 
-このドキュメントは **Claude Code に読ませて実行してもらうこと** を想定して書いてある。
-人間にしかできない手順（パスワード入力、GUI 操作、目視確認）は明示してある。
+新しい Mac に入れるときの手順を、上から順に実行できる形で書いてある。
+各ステップの「確認」を実行して、期待どおりの結果が出てから次へ進むこと。
 
-以下、`$REPO` はクローン先のディレクトリを指す。
+**「人間がやること」と書いた手順は自動化できない**（パスワード入力、GUI 操作、目視確認）。
 
----
-
-## Claude Code へ
-
-このファイルを読んだら、上から順に実行していってほしい。
-**「人間がやること」と書かれた手順は自分で実行せず、ユーザーに依頼して待つこと。**
-各ステップの「確認」を実行して、期待どおりの結果が出てから次へ進む。
-
-このアプリは画面を全画面で奪う。動作確認でオーバーレイを出す手順があるが、
-**それはユーザーに実行してもらうこと**（あなたには結果が見えないため）。
+> このファイルは Claude Code などのコーディングエージェントに読ませて実行させることも
+> 想定している。その場合、「人間がやること」はエージェントに実行させず、
+> 依頼して待つこと。オーバーレイの表示確認も同様（エージェントには結果が見えない）。
 
 ---
 
@@ -36,13 +29,13 @@ git --version
 open "macappstore://apps.apple.com/app/id497799835"
 ```
 
-インストール後、**人間がやること**（パスワードを聞かれるため Claude Code では実行できない）:
+インストール後、**人間がやること**（パスワードを聞かれるため自動化できない）:
 
 ```bash
 sudo xcodebuild -license accept
 ```
 
-そのあとは Claude Code が実行してよい:
+そのあとはコマンドで進められる:
 
 ```bash
 xcodebuild -runFirstLaunch
@@ -60,31 +53,8 @@ macOS SDK が表示されれば OK。「ライセンスに同意していませ�
 
 ## 2. リポジトリを取得
 
-**リポジトリは private なので、GitHub の認証が必要。**
-
-すでに `gh` にログイン済みかを確認する:
-
 ```bash
-gh auth status
-```
-
-未ログインなら、**人間がやること**（ブラウザでの認証が必要）:
-
-```bash
-gh auth login
-```
-
-クローン:
-
-```bash
-gh repo clone sugiwe/koshimonban
-cd koshimonban
-```
-
-`gh` を使わない場合は SSH でもよい（SSH 鍵が GitHub に登録済みであること）:
-
-```bash
-git clone git@github.com:sugiwe/koshimonban.git
+git clone https://github.com/sugiwe/koshimonban.git
 cd koshimonban
 ```
 
@@ -140,7 +110,7 @@ Dock にはアイコンが出ない（`LSUIElement`）ので、そちらには�
 3. 下部の**「今日の発動予定」**に実際の発動時刻が並ぶので、意図どおりか確認する
 
 設定は `~/Library/Application Support/Koshimonban/settings.json` に保存される。
-Claude Code から中身を確認したい場合:
+中身をコマンドで確認したい場合:
 
 ```bash
 cat ~/Library/Application\ Support/Koshimonban/settings.json
@@ -182,7 +152,7 @@ cat ~/Library/Application\ Support/Koshimonban/settings.json
 オンにすると下に登録先のパスが表示される。`/Applications/Koshimonban.app/...` になっていること。
 「/Applications の外にあります」という注意書きが出ていたら、手順4をやり直す。
 
-**確認**（Claude Code が実行してよい）:
+**確認**（コマンドで実行できる）:
 
 ```bash
 cat ~/Library/LaunchAgents/net.sugiwe.koshimonban.plist
@@ -216,10 +186,10 @@ plist の `ProgramArguments` が `/Applications/Koshimonban.app/Contents/MacOS/K
 
 - フルスクリーンのアプリの**上に**オーバーレイが出るか
 - 外部ディスプレイがあれば、そちらも覆われるか
-- **スキップボタンが最初の5秒間押せず、数字が減っていくか**
+- **「腰より仕事💀」が最初の5秒間押せず、数字が減っていくか**
 - Esc を押しても閉じないか
-- 「スキップ」を押すと理由の3択が出るか
-- 「終わった」で閉じるか
+- 「腰より仕事💀」を押すと理由の3択が出るか
+- 「腰を守った✌️」で閉じるか
 
 確認が終わったら**休憩の長さを 180 秒に戻す**。
 
@@ -227,7 +197,7 @@ plist の `ProgramArguments` が `/Applications/Koshimonban.app/Contents/MacOS/K
 
 **人間がやること**: 設定 →「記録」タブ →「今日」に行が増えていること。
 
-**確認**（Claude Code が実行してよい）:
+**確認**（コマンドで実行できる）:
 
 ```bash
 cat ~/Library/Application\ Support/Koshimonban/logs/$(date +%Y-%m).json
@@ -247,8 +217,8 @@ cat ~/Library/Application\ Support/Koshimonban/logs/$(date +%Y-%m).json
 | 状況 | 対処 |
 | --- | --- |
 | 今は発動してほしくない | メニューバーから「30分停止」「1時間停止」「今日はもう停止」 |
-| オーバーレイから抜けたい | 「終わった」または「スキップ」。カウントダウンが0になれば必ず閉じる |
-| アプリごと止めたい | メニューバーから「Koshimonban を終了」、または `pkill -x Koshimonban` |
+| オーバーレイから抜けたい | 「腰を守った✌️」または「腰より仕事💀」。カウントダウンが0になれば必ず閉じる |
+| アプリごと止めたい | メニューバーから「腰門番を終了」、または `pkill -x Koshimonban` |
 | 自動起動をやめたい | 設定 →「一般」→「ログイン時に自動起動」をオフ |
 
 `Esc` では**閉じない**（意図的にそうしてある）。
@@ -259,7 +229,7 @@ cat ~/Library/Application\ Support/Koshimonban/logs/$(date +%Y-%m).json
 
 `~/Library/Application Support/Koshimonban/` はそのマシンのローカル。
 複数の Mac で使うと記録が分裂し、達成率やヒートマップがそれぞれの Mac の分しか映らない。
-同期は v1 の対象外。
+同期は対象外。
 
 **主に作業する Mac 1台だけで使うのが素直。**
 
