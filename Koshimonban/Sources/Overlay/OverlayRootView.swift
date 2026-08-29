@@ -28,6 +28,12 @@ private struct PrimaryOverlayView: View {
     /// 動画があるときはカウントダウンを小さくして、動画に場所を譲る。
     private var hasVideo: Bool { video != nil && playbackState != nil }
 
+    /// 動画の幅の上限。
+    ///
+    /// 実際の大きさは、この上限と「縦に余っている高さ」の小さいほうで決まる（16:9 固定のため）。
+    /// 画面いっぱいには広げない。全画面の動画はうるさく、休憩が休憩でなくなる。
+    private static let videoMaxWidth: CGFloat = 1600
+
     var body: some View {
         VStack(spacing: hasVideo ? 20 : 32) {
             Spacer(minLength: hasVideo ? 24 : 0)
@@ -50,7 +56,11 @@ private struct PrimaryOverlayView: View {
                         BreakVideoView(video: video, state: playbackState)
                     }
                 }
-                .frame(maxWidth: 960, maxHeight: .infinity)
+                // 16:9 を明示しておくと、幅の上限と残りの高さのうち小さいほうに収まる。
+                // 幅だけを指定すると、超ワイドな画面では縦がはみ出し、
+                // 縦長の画面では横に余白が余る。
+                .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                .frame(maxWidth: Self.videoMaxWidth, maxHeight: .infinity)
                 .padding(.horizontal, 40)
                 if let title = video.title.isEmpty ? nil : video.title {
                     Text(title)
