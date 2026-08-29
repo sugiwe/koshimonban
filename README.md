@@ -205,16 +205,15 @@ Koshimonban/Sources/
   Resources/   アプリアイコン
 ```
 
-`Koshimonban/Sources` は Xcode の buildable folder として登録してある。
-**ファイルを増やしても `.xcodeproj` を編集する必要はない。**
+`Koshimonban/Sources` は Xcode の buildable folder として登録してあります。
+ファイルを増やしても `.xcodeproj` を編集する必要はありません。
 
 `.xcodeproj` / `project.pbxproj` は手で編集しないこと。高確率で壊れる。
 
 ## 状態
 
-作者が自分のために作ったものを公開している。**サポートは約束できない。**
-不具合や改善の提案は歓迎するが、対応は気まぐれになる。
-フォークして好きに変えてもらうのがたぶん一番早い。
+作者が自分のために作ったアプリのため、サポートはお約束できません。
+不具合や改善の提案は歓迎いたしますが、フォークして好きに改造していただいて問題ございません。
 
 ## ライセンス
 
