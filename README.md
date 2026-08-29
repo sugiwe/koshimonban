@@ -167,8 +167,13 @@ JSON なので直接開いて編集できる。読めない状態になってい
 
 ```bash
 ./tools/deploy.sh      # ビルド → /Applications に配置 → 起動
-./tools/make-icon.sh   # アプリアイコンの生成
+./tools/make-icon.sh   # tools/icon-source.png から AppIcon.icns を生成
 ```
+
+アイコンの絵を変えたいときは `tools/icon-source.png` を差し替えて `make-icon.sh` を実行する。
+元画像は正方形・中央配置であればよい。**macOS は iOS と違ってアイコンの角丸を自動で
+マスクしてくれない**ため、スクリプト側で絵の本体を切り出し、squircle に収めて
+外側を透明にしている。角丸の外が黒く塗られた画像でもそのまま渡してよい。
 
 ### spike/
 
