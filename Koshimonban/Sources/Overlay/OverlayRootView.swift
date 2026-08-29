@@ -38,7 +38,7 @@ private struct PrimaryOverlayView: View {
         VStack(spacing: hasVideo ? 20 : 32) {
             Spacer(minLength: hasVideo ? 24 : 0)
 
-            Text("立ち上がってストレッチ")
+            Text("腰を守るためにストレッチしよう🏋️‍♀️")
                 .font(.system(size: hasVideo ? 24 : 32, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.85))
 
@@ -113,9 +113,10 @@ private struct ActionButtons: View {
             Button {
                 session.markDone()
             } label: {
-                Text("終わった")
+                Text("腰を守った✌️")
                     .font(.system(size: 18, weight: .semibold))
-                    .frame(width: 180, height: 52)
+                    .padding(.horizontal, 24)
+                    .frame(minWidth: 180, minHeight: 52)
             }
             .buttonStyle(.plain)
             .background(Color.white.opacity(0.16))
@@ -127,10 +128,11 @@ private struct ActionButtons: View {
             Button {
                 session.requestSkip()
             } label: {
-                Text(session.canSkip ? "スキップ" : "スキップ　\(session.skipUnlockRemaining)")
+                Text(session.canSkip ? "腰より仕事💀" : "腰より仕事💀　\(session.skipUnlockRemaining)")
                     .font(.system(size: 18, weight: .medium))
                     .monospacedDigit()
-                    .frame(width: 180, height: 52)
+                    .padding(.horizontal, 24)
+                    .frame(minWidth: 180, minHeight: 52)
             }
             .buttonStyle(.plain)
             .background(Color.white.opacity(session.canSkip ? 0.08 : 0.03))
@@ -146,7 +148,7 @@ private struct SkipReasonPicker: View {
 
     var body: some View {
         VStack(spacing: 18) {
-            Text("なぜスキップしますか")
+            Text("なぜ腰より仕事を…？🥺")
                 .font(.system(size: 20, weight: .medium))
                 .foregroundStyle(.white.opacity(0.85))
 
@@ -157,7 +159,8 @@ private struct SkipReasonPicker: View {
                     } label: {
                         Text(reason.displayName)
                             .font(.system(size: 16))
-                            .frame(width: 150, height: 48)
+                            .padding(.horizontal, 20)
+                            .frame(minWidth: 150, minHeight: 48)
                     }
                     .buttonStyle(.plain)
                     .background(Color.white.opacity(0.12))
@@ -172,7 +175,7 @@ private struct SkipReasonPicker: View {
                     .font(.system(size: 14))
                     .foregroundStyle(.white.opacity(0.45))
 
-                Button("やっぱり休憩する") { session.cancelSkip() }
+                Button("やっぱり腰を守る🏋️‍♀️") { session.cancelSkip() }
                     .buttonStyle(.plain)
                     .font(.system(size: 14))
                     .foregroundStyle(.white.opacity(0.45))
@@ -187,7 +190,7 @@ private struct SecondaryOverlayView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("休憩中")
+            Text("腰を守っていて偉い👏")
                 .font(.system(size: 24, weight: .medium))
                 .foregroundStyle(.white.opacity(0.5))
             Text(session.countdownText)
