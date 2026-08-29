@@ -42,9 +42,16 @@ private struct PrimaryOverlayView: View {
                 .foregroundStyle(.white)
 
             if let video, let playbackState {
-                BreakVideoView(video: video, state: playbackState)
-                    .frame(maxWidth: 960, maxHeight: .infinity)
-                    .padding(.horizontal, 40)
+                // 前置きと動画は同じ枠に収める。差し替わるときに他の要素が動かないように。
+                Group {
+                    if session.videoLeadInRemaining > 0 {
+                        VideoLeadInView(remaining: session.videoLeadInRemaining)
+                    } else {
+                        BreakVideoView(video: video, state: playbackState)
+                    }
+                }
+                .frame(maxWidth: 960, maxHeight: .infinity)
+                .padding(.horizontal, 40)
                 if let title = video.title.isEmpty ? nil : video.title {
                     Text(title)
                         .font(.system(size: 13))
@@ -63,6 +70,28 @@ private struct PrimaryOverlayView: View {
             Spacer().frame(height: 40)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// 動画が始まる前の 3 → 2 → 1。
+///
+/// 数字ごとに `id` を変えて別のビュー扱いにすることで、切り替わりに transition がかかる。
+private struct VideoLeadInView: View {
+    let remaining: Int
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white.opacity(0.04))
+
+            Text("\(remaining)")
+                .font(.system(size: 120, weight: .thin, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.white.opacity(0.85))
+                .id(remaining)
+                .transition(.opacity.combined(with: .scale(scale: 1.25)))
+        }
+        .animation(.easeOut(duration: 0.3), value: remaining)
     }
 }
 
