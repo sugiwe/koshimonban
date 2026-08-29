@@ -1,14 +1,23 @@
 #!/bin/bash
 # アプリアイコンを生成して Koshimonban/Sources/Resources/AppIcon.icns に置く。
-# デザインを変えたいときは make-icon.swift を編集してこれを実行する。
+# 絵を変えたいときは tools/icon-source.png を差し替えてこれを実行する。
+#
+# 元画像は正方形・中央配置であればよい。角丸の外側が透明でも黒く塗られていても、
+# make-icon.swift 側で絵の本体を切り出して squircle に収める。
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+SOURCE="${1:-tools/icon-source.png}"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
+if [ ! -f "$SOURCE" ]; then
+    echo "元画像が見つかりません: $SOURCE"
+    exit 1
+fi
+
 swiftc -O -o "$WORK/gen" tools/make-icon.swift -framework Cocoa
-"$WORK/gen" "$WORK"
+"$WORK/gen" "$SOURCE" "$WORK"
 
 ICONSET="$WORK/AppIcon.iconset"
 mkdir -p "$ICONSET"
