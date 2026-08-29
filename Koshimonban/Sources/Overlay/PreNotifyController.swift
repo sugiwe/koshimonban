@@ -77,7 +77,7 @@ private struct PreNotifyView: View {
                 .font(.system(size: 26, weight: .light))
                 .foregroundStyle(.white.opacity(0.9))
             VStack(alignment: .leading, spacing: 3) {
-                Text("まもなく休憩です")
+                Text("まもなく腰の時間です🏋️‍♀️")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
                 Text(remainingText)
@@ -99,8 +99,8 @@ private struct PreNotifyView: View {
     }
 
     private var remainingText: String {
-        if seconds < 60 { return "あと \(seconds) 秒 — 区切りをつけておいてください" }
+        if seconds < 60 { return "あと \(seconds) 秒 — キリのいいところまで！" }
         let minutes = Int((Double(seconds) / 60).rounded())
-        return "あと \(minutes) 分 — 区切りをつけておいてください"
+        return "あと \(minutes) 分 — キリのいいところまで！"
     }
 }

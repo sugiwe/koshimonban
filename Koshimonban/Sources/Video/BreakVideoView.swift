@@ -49,11 +49,12 @@ private struct FallbackView: View {
             Image(systemName: "figure.flexibility")
                 .font(.system(size: 52, weight: .thin))
                 .foregroundStyle(.white.opacity(0.35))
-            Text("肩を回して、腰を伸ばしましょう")
+            Text("動画は出せませんでした。でも腰は伸ばせます🏋️‍♀️")
                 .font(.system(size: 20, weight: .medium))
                 .foregroundStyle(.white.opacity(0.6))
             if let reason {
-                Text("（動画を再生できませんでした: \(reason)）")
+                // 見出しで「出せなかった」ことは言い切っているので、ここは理由だけ。
+                Text("（理由: \(reason)）")
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.3))
             }

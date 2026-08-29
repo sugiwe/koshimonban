@@ -11,11 +11,13 @@ enum SkipReason: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// 表示だけを変えること。`rawValue` は記録の JSON にそのまま書き込まれているため、
+    /// 変えると過去の記録が読めなくなる。
     var displayName: String {
         switch self {
-        case .meeting:   "MTG直前"
-        case .focused:   "集中してる"
-        case .notInMood: "気分じゃない"
+        case .meeting:   "MTG直前なので🧑‍💻"
+        case .focused:   "今ノってるので🔥"
+        case .notInMood: "気分じゃない🙂‍↔️"
         }
     }
 }
