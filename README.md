@@ -46,7 +46,15 @@
 
 ## 使ってみる
 
-配布用のビルド済みアプリは用意していないため、ご自身でビルドしていただく必要があります。
+ビルド済みのアプリを [Releases](https://github.com/sugiwe/koshimonban/releases/latest) に
+置いてあります。Xcode がなくても、ダウンロードして `/Applications` に入れるだけで使えます。
+Intel / Apple Silicon の両方に対応しています。
+
+初回起動時に「開発元を確認できないため開けません」と表示されます。
+Apple の公証（notarization）を受けていないためです。
+通し方は「[Xcode のない Mac に持ち込む](#xcode-のない-mac-に持ち込む)」をご覧ください。
+
+### 自分でビルドする
 
 ```bash
 git clone https://github.com/sugiwe/koshimonban.git
