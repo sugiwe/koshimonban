@@ -15,9 +15,20 @@ final class BreakSession: ObservableObject {
     /// 「終わった」を押したとき、これ以上残っていたら「短縮」として記録する。
     static let shortThresholdSeconds = 30
 
+    /// 動画を出すまでに挟む前置きの秒数（3 → 2 → 1）。
+    ///
+    /// 暗転した直後に動画が鳴り出すのが唐突だったため、身構える間を置く。
+    /// **これは見せ方だけの話で、休憩そのものは 0 秒目から進んでいる。**
+    /// 前置きのぶん休憩を延ばす作りにすると、記録に残る休憩時間の意味が変わってしまう。
+    static let videoLeadInSeconds = 3
+    /// これ以下の短い休憩では前置きを入れない。休憩に占める前置きの割合が大きくなりすぎるため。
+    static let minimumBreakForLeadInSeconds = 10
+
     @Published private(set) var phase: Phase = .running
     @Published private(set) var remainingSeconds: Int
     @Published private(set) var skipUnlockRemaining: Int
+    /// 動画が出るまでの残り秒数。0 になったら動画に差し替える。前置きなしの場合は最初から 0。
+    @Published private(set) var videoLeadInRemaining: Int
 
     let totalSeconds: Int
     let startedAt: Date
@@ -33,10 +44,12 @@ final class BreakSession: ObservableObject {
     private let tickInterval: TimeInterval = 0.25
 
     init(breakSeconds: Int, skipUnlockSeconds: Int, startedAt: Date = Date()) {
-        self.totalSeconds = max(1, breakSeconds)
-        self.remainingSeconds = max(1, breakSeconds)
+        let total = max(1, breakSeconds)
+        self.totalSeconds = total
+        self.remainingSeconds = total
         self.skipUnlockRemaining = max(0, skipUnlockSeconds)
         self.skipUnlockSeconds = max(0, skipUnlockSeconds)
+        self.videoLeadInRemaining = total > Self.minimumBreakForLeadInSeconds ? Self.videoLeadInSeconds : 0
         self.startedAt = startedAt
     }
 
@@ -58,6 +71,11 @@ final class BreakSession: ObservableObject {
         let elapsed = Date().timeIntervalSince(startedAt)
 
         skipUnlockRemaining = max(0, Int(ceil(Double(skipUnlockSeconds) - elapsed)))
+
+        // 0 になったら二度と戻さない。前置きなしで始まった休憩をここで復活させないため。
+        if videoLeadInRemaining > 0 {
+            videoLeadInRemaining = max(0, Int(ceil(Double(Self.videoLeadInSeconds) - elapsed)))
+        }
 
         let remaining = max(0, Int(ceil(Double(totalSeconds) - elapsed)))
         if remaining != remainingSeconds { remainingSeconds = remaining }
