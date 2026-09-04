@@ -2,18 +2,32 @@ import SwiftUI
 
 struct OverlayRootView: View {
     @ObservedObject var session: BreakSession
+    @ObservedObject var gate: GateAnimation
     let isPrimary: Bool
     let video: VideoEntry?
     let playbackState: VideoPlaybackState?
 
     var body: some View {
         ZStack {
-            Color(red: 0.05, green: 0.06, blue: 0.10).ignoresSafeArea()
-            if isPrimary {
-                PrimaryOverlayView(session: session, video: video, playbackState: playbackState)
-            } else {
-                SecondaryOverlayView(session: session)
+            // 門が閉じきる前でも、クリックを下のアプリに通さないための下地。
+            //
+            // **完全に透明（alpha 0）にしてはいけない。** macOS は透明な領域への
+            // クリックを下のウィンドウへ素通しするため、門が閉じるまでの数百ミリ秒だけ
+            // 作業を続けられてしまう。目に見えない濃さで敷いておけば、
+            // 見た目は透けたままクリックはこちらが受け止める。
+            Color.black.opacity(0.02).ignoresSafeArea()
+
+            GateCurtainView(isClosed: gate.isClosed)
+
+            Group {
+                if isPrimary {
+                    PrimaryOverlayView(session: session, video: video, playbackState: playbackState)
+                } else {
+                    SecondaryOverlayView(session: session)
+                }
             }
+            // 中身は門が閉じきってから出す。閉じる途中で文字が見えると落ち着かない。
+            .opacity(gate.showsContent ? 1 : 0)
         }
         .preferredColorScheme(.dark)
     }

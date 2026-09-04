@@ -26,9 +26,15 @@ final class OverlayWindow: NSWindow {
         // 全 Space に出す。この組み合わせなら Space は切り替わらない（検証済み）。
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-        // 半透明にすると下の画面が見えて作業を続けようとするため、不透明にする。
-        isOpaque = true
-        backgroundColor = NSColor(calibratedRed: 0.05, green: 0.06, blue: 0.10, alpha: 1.0)
+        // 暗さはウィンドウではなく SwiftUI 側で描く。門が左右から閉じる動きを見せるには、
+        // 閉じきるまでの間だけ中央が透けている必要があるため。
+        // 閉じきったあとは不透明の暗幕で覆われるので、下の画面は見えない。
+        //
+        // なお、透ける領域があってもクリックは奪える。OverlayRootView が
+        // 「目には見えないがゼロではない濃さ」を全画面に敷いており、
+        // macOS はそこを不透明とみなしてこのウィンドウにイベントを届ける。
+        isOpaque = false
+        backgroundColor = .clear
         hasShadow = false
         isReleasedWhenClosed = false
         ignoresMouseEvents = false
