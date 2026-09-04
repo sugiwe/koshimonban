@@ -58,6 +58,29 @@ git clone https://github.com/sugiwe/koshimonban.git
 cd koshimonban
 ```
 
+### コミットの著者情報を設定する（コミットする前に必ず）
+
+**このリポジトリは公開予定で、コミット履歴の著者情報も公開されます。**
+個人のメールアドレスが履歴に入らないよう、このリポジトリだけ noreply アドレスを使います。
+
+```bash
+git config user.name "sugiwe"
+git config user.email "25524188+sugiwe@users.noreply.github.com"
+```
+
+`--global` を付けないこと。このリポジトリの中だけの設定にします。
+
+**確認**:
+
+```bash
+git config user.email    # 25524188+sugiwe@users.noreply.github.com と出れば OK
+```
+
+あわせて、GitHub の https://github.com/settings/emails で
+**「Keep my email addresses private」と「Block command line pushes that expose my email」**
+を有効にしておくことを勧めます。有効にすると、個人アドレスを含む push を GitHub が拒否するため、
+マシンごとの設定を忘れても事故になりません。
+
 ---
 
 ## 3. 発動判定の検証（任意だが推奨）
