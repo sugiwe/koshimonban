@@ -54,6 +54,10 @@ private struct ScheduleGridEditor: View {
     /// 最初に触れたタイルの状態で決めて、ドラッグ中は変えない。
     @State private var paintingOn: Bool?
 
+    /// 「すべて消す」の確認を出しているか。
+    /// 週の設定は塗り直すのに手間がかかるので、押し間違いで消えないようにする。
+    @State private var isConfirmingClear = false
+
     private let rowHeight: CGFloat = 26
     private let labelWidth: CGFloat = 24
     private let rowSpacing: CGFloat = 3
@@ -119,12 +123,21 @@ private struct ScheduleGridEditor: View {
                 Text("塗った合計: \(settingsStore.settings.schedule.totalRangeCount) 区間")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button("すべて消す") {
+                Button("すべて消す") { isConfirmingClear = true }
+                    .buttonStyle(.borderless)
+                    .font(.caption)
+                    .disabled(settingsStore.settings.schedule.isEmpty)
+            }
+            .alert("すべての作業時間帯を消しますか？", isPresented: $isConfirmingClear) {
+                Button("キャンセル", role: .cancel) { }
+                Button("消す", role: .destructive) {
                     for weekday in Weekday.allCases {
                         settingsStore.settings.schedule[weekday] = []
                     }
                 }
-                .buttonStyle(.borderless).font(.caption)
+            } message: {
+                Text("7曜日ぶん、\(settingsStore.settings.schedule.totalRangeCount) 区間の設定が消えます。"
+                     + "元に戻すことはできないため、塗り直しになります。")
             }
         }
     }
