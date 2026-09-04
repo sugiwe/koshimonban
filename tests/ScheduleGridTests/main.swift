@@ -10,10 +10,11 @@ func check(_ label: String, _ actual: String, _ expected: String) {
     }
 }
 
-func settings(blocks: [WorkBlock], interval: Int = 30, breakSec: Int = 180,
+func settings(blocks: [LegacyWorkBlock], interval: Int = 30, breakSec: Int = 180,
               debug: Bool = false, ignoreBlocks: Bool = false) -> AppSettings {
     var s = AppSettings.default
-    s.workBlocks = blocks
+    // テストは「時間帯 + 曜日」で書いた方が読みやすいので、移行の仕組みを通して組み立てる
+    s.schedule = WeekSchedule.migrating(from: blocks)
     s.intervalMinutes = interval
     s.breakSeconds = breakSec
     s.debugMode = debug
@@ -21,8 +22,8 @@ func settings(blocks: [WorkBlock], interval: Int = 30, breakSec: Int = 180,
     return s
 }
 
-func block(_ start: String, _ end: String, _ weekdays: [Int] = [1,2,3,4,5,6,7]) -> WorkBlock {
-    WorkBlock(start: TimeOfDay(string: start)!, end: TimeOfDay(string: end)!, weekdays: weekdays)
+func block(_ start: String, _ end: String, _ weekdays: [Int] = [1,2,3,4,5,6,7]) -> LegacyWorkBlock {
+    LegacyWorkBlock(start: TimeOfDay(string: start)!, end: TimeOfDay(string: end)!, weekdays: weekdays)
 }
 
 func times(_ s: AppSettings, weekday: Int = 1) -> String {
@@ -169,6 +170,47 @@ check("取りこぼしは分母にも入れない（本人の意思ではない�
       "\(BreakResult.missed.countsAsAchieved) / \(BreakResult.missed.countsInTotal)", "false / false")
 check("一時停止も分母に入れない",
       "\(BreakResult.paused.countsAsAchieved) / \(BreakResult.paused.countsInTotal)", "false / false")
+
+print("\n=== タイル（30分刻み）と範囲の相互変換 ===")
+func slotsOf(_ ranges: [(String, String)]) -> [Int] {
+    Set(ranges.map { TimeRange(start: TimeOfDay(string: $0.0)!, end: TimeOfDay(string: $0.1)!) }
+        .flatMap { $0.slotIndices }).sorted()
+}
+func rangesOf(_ slots: [Int]) -> String {
+    TimeRange.ranges(fromSlots: Set(slots)).map(\.displayString).joined(separator: " ")
+}
+check("10:00–12:00 は 20〜23 のタイル", slotsOf([("10:00","12:00")]).map(String.init).joined(separator: ","), "20,21,22,23")
+check("連続したタイルは1つの範囲にまとまる", rangesOf([20,21,22,23]), "10:00–12:00")
+check("離れたタイルは別々の範囲になる", rangesOf([20,21,28,29]), "10:00–11:00 14:00–15:00")
+check("1枚だけでも範囲になる", rangesOf([20]), "10:00–10:30")
+check("最後のタイルは 24:00 で終わる", rangesOf([47]), "23:30–24:00")
+check("範囲→タイル→範囲で元に戻る",
+      rangesOf(slotsOf([("06:00","12:00"), ("13:00","18:00")])),
+      "06:00–12:00 13:00–18:00")
+check("空なら範囲も空", rangesOf([]), "")
+
+print("\n=== v1 からの移行 ===")
+let legacyJSON = """
+{"version":1,"intervalMinutes":30,"breakSeconds":180,
+ "workBlocks":[{"id":"11111111-1111-1111-1111-111111111111","start":"10:00","end":"12:00","weekdays":[1,3]},
+               {"id":"22222222-2222-2222-2222-222222222222","start":"14:00","end":"17:00","weekdays":[1]}]}
+"""
+let migrated = try! JSONDecoder().decode(AppSettings.self, from: legacyJSON.data(using: .utf8)!)
+check("月曜には2つの時間帯が移る",
+      migrated.schedule[.mon].map(\.displayString).joined(separator: " "), "10:00–12:00 14:00–17:00")
+check("水曜には1つだけ移る",
+      migrated.schedule[.wed].map(\.displayString).joined(separator: " "), "10:00–12:00")
+check("指定の無い火曜は空", migrated.schedule[.tue].isEmpty ? "空" : "空でない", "空")
+check("v1 形式だと判定できる",
+      AppSettings.isLegacyFormat(legacyJSON.data(using: .utf8)!) ? "v1" : "v1ではない", "v1")
+
+let encoder2 = JSONEncoder()
+encoder2.outputFormatting = [.sortedKeys]
+let reEncoded = String(data: try! encoder2.encode(migrated.schedule), encoding: .utf8)!
+check("書き出しは曜日名をキーにした形になる",
+      reEncoded.contains("\"mon\":[{\"end\":\"12:00\",\"start\":\"10:00\"}") ? "はい" : "いいえ", "はい")
+check("移行後は v1 形式と判定されない",
+      AppSettings.isLegacyFormat(try! JSONEncoder().encode(migrated)) ? "v1" : "v1ではない", "v1ではない")
 
 print("")
 if failures == 0 {

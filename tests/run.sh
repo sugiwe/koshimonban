@@ -13,7 +13,10 @@ trap 'rm -rf "$OUT"' EXIT
 
 swiftc -O -o "$OUT/gridtest" \
     Koshimonban/Sources/Models/TimeOfDay.swift \
-    Koshimonban/Sources/Models/WorkBlock.swift \
+    Koshimonban/Sources/Models/LegacyWorkBlock.swift \
+    Koshimonban/Sources/Models/Weekday.swift \
+    Koshimonban/Sources/Models/TimeRange.swift \
+    Koshimonban/Sources/Models/WeekSchedule.swift \
     Koshimonban/Sources/Models/VideoEntry.swift \
     Koshimonban/Sources/Models/AppSettings.swift \
     Koshimonban/Sources/Models/BreakResult.swift \

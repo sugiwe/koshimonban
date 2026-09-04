@@ -7,7 +7,10 @@ import Foundation
 /// キーが1つ欠けただけで設定全体が読めなくなるのを避けるため。
 struct AppSettings: Codable, Equatable {
     var version: Int
-    var workBlocks: [WorkBlock]
+    var schedule: WeekSchedule
+    /// 設定画面の時間割表で表示する時間の範囲（時）。編集できるのはこの範囲だけ。
+    var gridStartHour: Int
+    var gridEndHour: Int
     var intervalMinutes: Int
     var breakSeconds: Int
     var preNotifyMinutes: Int
@@ -18,18 +21,16 @@ struct AppSettings: Codable, Equatable {
     /// デバッグモード時、作業時間帯の判定を無視して常に作業中とみなす
     var debugIgnoreWorkBlocks: Bool
 
-    static let currentVersion = 1
+    static let currentVersion = 2
 
     static let `default` = AppSettings(
         version: currentVersion,
-        workBlocks: [
-            WorkBlock(start: TimeOfDay(hour: 10, minute: 0),
-                      end:   TimeOfDay(hour: 12, minute: 0),
-                      weekdays: [1, 2, 3, 4, 5]),
-            WorkBlock(start: TimeOfDay(hour: 14, minute: 0),
-                      end:   TimeOfDay(hour: 17, minute: 0),
-                      weekdays: [1, 2, 3, 4, 5]),
-        ],
+        schedule: WeekSchedule(days: Dictionary(uniqueKeysWithValues: Weekday.weekdays.map {
+            ($0, [TimeRange(start: TimeOfDay(hour: 10, minute: 0), end: TimeOfDay(hour: 12, minute: 0)),
+                  TimeRange(start: TimeOfDay(hour: 14, minute: 0), end: TimeOfDay(hour: 17, minute: 0))])
+        })),
+        gridStartHour: 6,
+        gridEndHour: 24,
         intervalMinutes: 30,
         breakSeconds: 180,
         preNotifyMinutes: 1,
@@ -40,11 +41,14 @@ struct AppSettings: Codable, Equatable {
         debugIgnoreWorkBlocks: false
     )
 
-    init(version: Int, workBlocks: [WorkBlock], intervalMinutes: Int, breakSeconds: Int,
+    init(version: Int, schedule: WeekSchedule, gridStartHour: Int, gridEndHour: Int,
+         intervalMinutes: Int, breakSeconds: Int,
          preNotifyMinutes: Int, skipUnlockSeconds: Int, videos: [VideoEntry],
          launchAtLogin: Bool, debugMode: Bool, debugIgnoreWorkBlocks: Bool) {
         self.version = version
-        self.workBlocks = workBlocks
+        self.schedule = schedule
+        self.gridStartHour = gridStartHour
+        self.gridEndHour = gridEndHour
         self.intervalMinutes = intervalMinutes
         self.breakSeconds = breakSeconds
         self.preNotifyMinutes = preNotifyMinutes
@@ -59,8 +63,12 @@ struct AppSettings: Codable, Equatable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let d = AppSettings.default
         self.init(
-            version:           try c.decodeIfPresent(Int.self,          forKey: .version)           ?? d.version,
-            workBlocks:        try c.decodeIfPresent([WorkBlock].self,  forKey: .workBlocks)        ?? d.workBlocks,
+            // 保存するのは常に現在の形式なので、読み込んだ値ではなく現在の版を持つ。
+            // ファイルに書かれた版と中身が食い違うと、次に読むときの判断を誤る。
+            version:           Self.currentVersion,
+            schedule:          try Self.decodeSchedule(from: decoder) ?? d.schedule,
+            gridStartHour:     try c.decodeIfPresent(Int.self,          forKey: .gridStartHour)     ?? d.gridStartHour,
+            gridEndHour:       try c.decodeIfPresent(Int.self,          forKey: .gridEndHour)       ?? d.gridEndHour,
             intervalMinutes:   try c.decodeIfPresent(Int.self,          forKey: .intervalMinutes)   ?? d.intervalMinutes,
             breakSeconds:      try c.decodeIfPresent(Int.self,          forKey: .breakSeconds)      ?? d.breakSeconds,
             preNotifyMinutes:  try c.decodeIfPresent(Int.self,          forKey: .preNotifyMinutes)  ?? d.preNotifyMinutes,
@@ -70,6 +78,33 @@ struct AppSettings: Codable, Equatable {
             debugMode:         try c.decodeIfPresent(Bool.self,         forKey: .debugMode)         ?? d.debugMode,
             debugIgnoreWorkBlocks: try c.decodeIfPresent(Bool.self,     forKey: .debugIgnoreWorkBlocks) ?? d.debugIgnoreWorkBlocks
         )
+    }
+
+    /// v1 の設定ファイルにだけ存在したキー。
+    /// `CodingKeys` は現在のプロパティから自動合成されるため、別に用意する。
+    private enum LegacyCodingKeys: String, CodingKey {
+        case workBlocks
+    }
+
+    /// v2 の `schedule` があればそれを、無ければ v1 の `workBlocks` から移行する。
+    private static func decodeSchedule(from decoder: Decoder) throws -> WeekSchedule? {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let schedule = try container.decodeIfPresent(WeekSchedule.self, forKey: .schedule) {
+            return schedule
+        }
+        let legacyContainer = try decoder.container(keyedBy: LegacyCodingKeys.self)
+        if let blocks = try legacyContainer.decodeIfPresent([LegacyWorkBlock].self, forKey: .workBlocks) {
+            return WeekSchedule.migrating(from: blocks)
+        }
+        return nil
+    }
+
+    /// v1 の形で保存されているか。移行前のファイルを退避すべきかの判断に使う。
+    static func isLegacyFormat(_ data: Data) -> Bool {
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return false
+        }
+        return object["schedule"] == nil && object["workBlocks"] != nil
     }
 
     // MARK: デバッグモードによる読み替え
@@ -91,8 +126,8 @@ struct AppSettings: Codable, Equatable {
     /// 設定値の健全性チェック。UI のバリデーション表示に使う。
     var validationErrors: [String] {
         var errors: [String] = []
-        for block in workBlocks where !block.isValid {
-            errors.append("作業時間帯 \(block.displayString) は終了が開始より前です。日付をまたぐ時間帯は未対応です。")
+        if schedule.isEmpty {
+            errors.append("作業時間帯が1つも設定されていません。この状態では一度も発動しません。")
         }
         if intervalMinutes < 1 {
             errors.append("間隔は1以上にしてください。")

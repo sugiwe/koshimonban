@@ -127,8 +127,8 @@ private struct HeatmapView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             LazyVGrid(columns: columns, spacing: 4) {
-                ForEach(WorkBlock.weekdayNames, id: \.self) { name in
-                    Text(name).font(.caption2).foregroundStyle(.secondary)
+                ForEach(Weekday.allCases) { weekday in
+                    Text(weekday.displayName).font(.caption2).foregroundStyle(.secondary)
                 }
                 ForEach(0..<leadingPadding, id: \.self) { _ in
                     Color.clear.frame(width: 30, height: 30)

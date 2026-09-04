@@ -22,7 +22,7 @@ struct SettingsView: View {
             DeveloperTab()
                 .tabItem { Label("開発", systemImage: "hammer") }
         }
-        .frame(width: 540, height: 560)
+        .frame(width: 760, height: 620)
         .onDisappear { settingsStore.saveNow() }
     }
 }
