@@ -58,10 +58,23 @@ git clone https://github.com/sugiwe/koshimonban.git
 cd koshimonban
 ```
 
-### コミットの著者情報を設定する（コミットする前に必ず）
+### コミットの著者情報について
 
 **このリポジトリは公開予定で、コミット履歴の著者情報も公開されます。**
-個人のメールアドレスが履歴に入らないよう、このリポジトリだけ noreply アドレスを使います。
+
+**まず GitHub 側の設定を確認してください。これが本命です。**
+
+https://github.com/settings/emails で **「Keep my email addresses private」** を有効にします。
+
+理由: **GitHub は squash マージのとき、コミットの著者をアカウントの主要メールアドレスに
+置き換えます。** ローカルで noreply を設定していても、PR をマージした時点で個人アドレスに
+戻ってしまいます。この設定を有効にすると noreply アドレスが使われます。
+アカウント単位の設定なので、どのマシンから作業しても効きます。
+
+あわせて同じ画面の **「Block command line pushes that expose my email」** も有効にすると、
+個人アドレスを含む push を GitHub が拒否します。
+
+そのうえで、このリポジトリのローカル設定も揃えておきます（`main` へ直接 push する場合に効きます）。
 
 ```bash
 git config user.name "sugiwe"
@@ -75,11 +88,6 @@ git config user.email "25524188+sugiwe@users.noreply.github.com"
 ```bash
 git config user.email    # 25524188+sugiwe@users.noreply.github.com と出れば OK
 ```
-
-あわせて、GitHub の https://github.com/settings/emails で
-**「Keep my email addresses private」と「Block command line pushes that expose my email」**
-を有効にしておくことを勧めます。有効にすると、個人アドレスを含む push を GitHub が拒否するため、
-マシンごとの設定を忘れても事故になりません。
 
 ---
 
