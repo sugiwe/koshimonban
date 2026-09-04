@@ -28,6 +28,10 @@ struct OverlayRootView: View {
             }
             // 中身は門が閉じきってから出す。閉じる途中で文字が見えると落ち着かない。
             .opacity(gate.showsContent ? 1 : 0)
+            // opacity だけではクリックもキー入力も生きたままになる。
+            // オーバーレイは0秒目からキーウィンドウなので、タイプ中に発動すると
+            // 見えない「腰を守った✌️」に Space や Return が入り、休憩が即座に終わりうる。
+            .allowsHitTesting(gate.showsContent)
         }
         .preferredColorScheme(.dark)
     }

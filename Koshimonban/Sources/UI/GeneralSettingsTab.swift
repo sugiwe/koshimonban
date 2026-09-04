@@ -21,6 +21,7 @@ struct GeneralSettingsTab: View {
                 LabeledContent("発動の間隔") {
                     HStack {
                         TextField("", value: settings.intervalMinutes, format: .number)
+                            .onSubmit { settingsStore.clampValues() }
                             .frame(width: 60).multilineTextAlignment(.trailing)
                         Text(settingsStore.settings.debugMode ? "秒（デバッグモード）" : "分")
                             .foregroundStyle(.secondary)
@@ -29,6 +30,7 @@ struct GeneralSettingsTab: View {
                 LabeledContent("休憩の長さ") {
                     HStack {
                         TextField("", value: settings.breakSeconds, format: .number)
+                            .onSubmit { settingsStore.clampValues() }
                             .frame(width: 60).multilineTextAlignment(.trailing)
                         Text("秒").foregroundStyle(.secondary)
                     }
@@ -36,6 +38,7 @@ struct GeneralSettingsTab: View {
                 LabeledContent("予告") {
                     HStack {
                         TextField("", value: settings.preNotifyMinutes, format: .number)
+                            .onSubmit { settingsStore.clampValues() }
                             .frame(width: 60).multilineTextAlignment(.trailing)
                         Text("分前（0 で無効）").foregroundStyle(.secondary)
                     }
@@ -43,6 +46,7 @@ struct GeneralSettingsTab: View {
                 LabeledContent("スキップの解禁まで") {
                     HStack {
                         TextField("", value: settings.skipUnlockSeconds, format: .number)
+                            .onSubmit { settingsStore.clampValues() }
                             .frame(width: 60).multilineTextAlignment(.trailing)
                         Text("秒").foregroundStyle(.secondary)
                     }
@@ -53,8 +57,9 @@ struct GeneralSettingsTab: View {
                 Toggle("ログイン時に自動起動", isOn: Binding(
                     get: { launchAgent.isInstalled },
                     set: { enabled in
+                        // 自動起動の真偽は plist の有無が唯一の事実。
+                        // settings.json に別途持つと、書いてある値と実態がずれる。
                         if enabled { launchAgent.install() } else { launchAgent.uninstall() }
-                        settingsStore.settings.launchAtLogin = enabled
                     }
                 ))
 

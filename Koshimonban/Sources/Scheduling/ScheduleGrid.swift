@@ -94,13 +94,6 @@ enum ScheduleGrid {
         return result.sorted { $0.at < $1.at }
     }
 
-    /// いま（secondsFromMidnight）から見て次に来る発動予定。無ければ nil。
-    static func nextSlot(after seconds: Int, settings: AppSettings, date: Date,
-                         calendar: Calendar = .current) -> Slot? {
-        slots(settings: settings, date: date, calendar: calendar)
-            .first { $0.at > seconds }
-    }
-
     /// この時刻に発動を始めても、休憩が作業時間帯に収まるか。
     ///
     /// スリープやロックからの復帰で予定時刻を過ぎてから発動する場合の判定に使う。
@@ -109,16 +102,106 @@ enum ScheduleGrid {
         seconds >= slot.blockStart && seconds + breakSeconds <= slot.blockEnd
     }
 
+    // MARK: 発動の判定
+    //
+    // 「いま何をすべきか」の判断はここに置く。副作用は一切持たない。
+    // Scheduler の中に置いたままだと、画面ロックやスリープを再現しないと確かめられず、
+    // このアプリで最も重要な境界条件がテストできない状態になる。
+
+    /// 判定に必要な、その瞬間の事実。
+    struct Context {
+        /// いま（0:00 からの経過秒）
+        var nowSeconds: Int
+        /// すでに決着がついた発動予定
+        var resolved: Set<Int>
+        var isPaused: Bool
+        var isOverlayVisible: Bool
+        /// ユーザーが画面の前にいるか（ロック中・ユーザー切り替え中は false）
+        var isUserPresent: Bool
+        var breakSeconds: Int
+    }
+
+    /// 発動できなかった理由。表示用の文言は呼び出し側が決める。
+    enum SkipCause: Equatable {
+        /// 発動時刻を過ぎたまま、次の予定時刻になった
+        case overtakenByNextSlot
+        /// 画面がロックされたまま作業時間帯が終わった
+        case lockedUntilBlockEnded
+        /// 追いつく前に作業時間帯が終わった
+        case notCaughtUpBeforeBlockEnded
+        /// 一時停止中だった
+        case pausedAtSlot
+    }
+
+    enum Decision: Equatable {
+        case resolve(Slot, BreakResult, SkipCause)
+        case fire(Slot)
+    }
+
+    /// いま何をすべきかを決める。
+    ///
+    /// 追いつくのは直近の1回だけ。まとめて何回も発動させても意味がないため、
+    /// それより古いものは取りこぼしとして確定させる。
+    static func decide(slots: [Slot], context: Context) -> [Decision] {
+        let due = slots.filter { $0.at <= context.nowSeconds && !context.resolved.contains($0.at) }
+        guard let latest = due.last else { return [] }
+
+        var decisions: [Decision] = due.dropLast().map {
+            .resolve($0, .missed, .overtakenByNextSlot)
+        }
+
+        if context.isPaused {
+            decisions.append(.resolve(latest, .paused, .pausedAtSlot))
+            return decisions
+        }
+
+        // すでに出ているなら二重に出さない。決着はオーバーレイ側でつく。
+        if context.isOverlayVisible { return decisions }
+
+        let canFireNow = canFire(slot: latest, atSeconds: context.nowSeconds,
+                                 breakSeconds: context.breakSeconds)
+
+        if !context.isUserPresent {
+            // 不在中は発動しない。ただし作業時間帯が終わっていれば、もう追いつけない。
+            if !canFireNow {
+                decisions.append(.resolve(latest, .missed, .lockedUntilBlockEnded))
+            }
+            return decisions
+        }
+
+        guard canFireNow else {
+            decisions.append(.resolve(latest, .missed, .notCaughtUpBeforeBlockEnded))
+            return decisions
+        }
+
+        decisions.append(.fire(latest))
+        return decisions
+    }
+
     // MARK: 表示用
 
     static func timeString(fromSeconds seconds: Int) -> String {
-        let s = ((seconds % secondsPerDay) + secondsPerDay) % secondsPerDay
+        let s = normalized(seconds)
         return String(format: "%02d:%02d", s / 3600, (s % 3600) / 60)
     }
 
     /// デバッグモードでは秒単位のグリッドになるため、秒まで出さないと区別がつかない。
     static func preciseTimeString(fromSeconds seconds: Int) -> String {
-        let s = ((seconds % secondsPerDay) + secondsPerDay) % secondsPerDay
+        let s = normalized(seconds)
         return String(format: "%02d:%02d:%02d", s / 3600, (s % 3600) / 60, s % 60)
+    }
+
+    /// 設定に応じた時刻表記。
+    /// 「デバッグモードなら秒まで」というルールを2箇所に書くと、片方だけ直したときに
+    /// 開発タブと設定タブで表示がずれる。
+    static func timeString(fromSeconds seconds: Int, settings: AppSettings) -> String {
+        settings.debugMode
+            ? preciseTimeString(fromSeconds: seconds)
+            : timeString(fromSeconds: seconds)
+    }
+
+    /// 0:00 からの経過秒を 1日の範囲に収める
+    static func normalized(_ seconds: Int) -> Int {
+        ((seconds % secondsPerDay) + secondsPerDay) % secondsPerDay
     }
 }

@@ -43,9 +43,21 @@ struct LocalVideoPlayerView: NSViewRepresentable {
         private let state: VideoPlaybackState
         private var statusObservation: NSKeyValueObservation?
         private var timeObserver: Any?
-        private weak var player: AVPlayer?
+        /// **weak にしてはいけない。**
+        /// AVPlayer が先に解放されると removeTimeObserver を呼べなくなり、
+        /// 「periodic time observer が登録されたまま AVPlayer が解放された」で実行時に落ちる。
+        /// 解除し終えるまでは、こちらが生かしておく責任がある。
+        private var player: AVPlayer?
 
         init(state: VideoPlaybackState) { self.state = state }
+
+        /// dismantleNSView が呼ばれない経路で解放された場合の保険。
+        deinit {
+            statusObservation?.invalidate()
+            if let timeObserver, let player {
+                player.removeTimeObserver(timeObserver)
+            }
+        }
 
         func observe(player: AVPlayer) {
             self.player = player
@@ -75,6 +87,7 @@ struct LocalVideoPlayerView: NSViewRepresentable {
                 player.removeTimeObserver(timeObserver)
             }
             timeObserver = nil
+            player = nil
         }
     }
 }

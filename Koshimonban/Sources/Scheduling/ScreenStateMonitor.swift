@@ -11,72 +11,63 @@ import AppKit
 final class ScreenStateMonitor {
 
     /// 画面ロック / ロック解除 / スリープ復帰のいずれかが起きたときに呼ばれる。
-    /// 引数は「作業に戻ってきた」= 猶予を置いてから発動を再開すべきか。
     var onResume: ((String) -> Void)?
     var onSuspend: ((String) -> Void)?
 
-    private var observers: [NSObjectProtocol] = []
+    /// どの通知センターに登録したトークンかを対で持つ。
+    /// 混ぜて持つと、解除時にどちらのセンターへ渡すべきか分からなくなる。
+    private var observers: [(center: NotificationCenter, token: NSObjectProtocol)] = []
 
     /// 通知で追跡しているロック状態。辞書が使えない環境ではこちらが正になる。
     private var lockedByNotification = false
 
     func start() {
         let distributed = DistributedNotificationCenter.default()
-
-        observers.append(distributed.addObserver(
-            forName: .init("com.apple.screenIsLocked"), object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.lockedByNotification = true
-                self?.onSuspend?("画面がロックされました")
-            }
-        })
-
-        observers.append(distributed.addObserver(
-            forName: .init("com.apple.screenIsUnlocked"), object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.lockedByNotification = false
-                self?.onResume?("画面のロックが解除されました")
-            }
-        })
-
         let workspace = NSWorkspace.shared.notificationCenter
 
-        observers.append(workspace.addObserver(
-            forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.onSuspend?("スリープに入ります") }
-        })
+        observe(distributed, named: .init("com.apple.screenIsLocked")) { [weak self] in
+            self?.lockedByNotification = true
+            self?.onSuspend?("画面がロックされました")
+        }
 
-        observers.append(workspace.addObserver(
-            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.onResume?("スリープから復帰しました") }
-        })
+        observe(distributed, named: .init("com.apple.screenIsUnlocked")) { [weak self] in
+            self?.lockedByNotification = false
+            self?.onResume?("画面のロックが解除されました")
+        }
 
-        // 画面ロックを伴わない離席（ユーザ切り替え）も拾っておく
-        observers.append(workspace.addObserver(
-            forName: NSWorkspace.sessionDidResignActiveNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.onSuspend?("セッションが非アクティブになりました") }
-        })
+        observe(workspace, named: NSWorkspace.willSleepNotification) { [weak self] in
+            self?.onSuspend?("スリープに入ります")
+        }
 
-        observers.append(workspace.addObserver(
-            forName: NSWorkspace.sessionDidBecomeActiveNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.onResume?("セッションがアクティブになりました") }
-        })
+        observe(workspace, named: NSWorkspace.didWakeNotification) { [weak self] in
+            self?.onResume?("スリープから復帰しました")
+        }
+
+        // 画面ロックを伴わない離席（ユーザー切り替え）も拾っておく
+        observe(workspace, named: NSWorkspace.sessionDidResignActiveNotification) { [weak self] in
+            self?.onSuspend?("セッションが非アクティブになりました")
+        }
+
+        observe(workspace, named: NSWorkspace.sessionDidBecomeActiveNotification) { [weak self] in
+            self?.onResume?("セッションがアクティブになりました")
+        }
     }
 
     func stop() {
-        let distributed = DistributedNotificationCenter.default()
-        let workspace = NSWorkspace.shared.notificationCenter
-        for observer in observers {
-            distributed.removeObserver(observer)
-            workspace.removeObserver(observer)
+        for entry in observers {
+            entry.center.removeObserver(entry.token)
         }
         observers.removeAll()
+    }
+
+    /// 通知の購読を登録し、解除に必要な情報を控える。
+    /// `queue: .main` で登録しているので、ハンドラは必ずメインスレッドで呼ばれる。
+    private func observe(_ center: NotificationCenter, named name: Notification.Name,
+                         handler: @escaping () -> Void) {
+        let token = center.addObserver(forName: name, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { handler() }
+        }
+        observers.append((center, token))
     }
 
     /// いま画面がロックされているか。
@@ -92,7 +83,7 @@ final class ScreenStateMonitor {
         return lockedByNotification
     }
 
-    /// このセッションが実際に画面を握っているか（ユーザ切り替え中は false）。
+    /// このセッションが実際に画面を握っているか（ユーザー切り替え中は false）。
     var isSessionOnConsole: Bool {
         guard let dictionary = CGSessionCopyCurrentDictionary() as? [String: Any] else { return true }
         if let onConsole = dictionary["kCGSSessionOnConsoleKey"] as? Bool { return onConsole }

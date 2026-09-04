@@ -5,7 +5,7 @@ import Foundation
 /// 「時間帯に曜日を紐づける」のではなく「曜日に時間帯を紐づける」形にしている。
 /// リモートワークでは曜日固定の定例 MTG が多く、
 /// 「月曜はこの時間帯、火曜はこの時間帯」と組み立てる方が実態に合うため。
-struct WeekSchedule: Codable, Equatable {
+struct WeekSchedule: Codable, Equatable, Hashable {
 
     private var days: [Weekday: [TimeRange]]
 

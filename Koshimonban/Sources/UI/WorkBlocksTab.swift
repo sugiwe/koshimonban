@@ -88,6 +88,11 @@ private struct ScheduleGridEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             GeometryReader { geometry in
+                // 表の寸法は1描画に1回だけ求める。
+                // 計算プロパティのまま各行に渡すと、7曜日ぶんのタイル変換が
+                // 1描画で十数回走る（ドラッグ塗りは毎タイル再描画される）。
+                let firstSlot = self.firstSlot
+                let slotCount = self.slotCount
                 let gridWidth = geometry.size.width - labelWidth
                 let cellWidth = gridWidth / CGFloat(slotCount)
 
@@ -247,15 +252,11 @@ private struct TodaysScheduleList: View {
         } else {
             Text("\(slots.count) 回")
                 .font(.caption).foregroundStyle(.secondary)
-            Text(slots.map { formatted($0.at, settings: settings) }.joined(separator: "  "))
+            Text(slots.map { ScheduleGrid.timeString(fromSeconds: $0.at, settings: settings) }
+                    .joined(separator: "  "))
                 .font(.system(.body, design: .monospaced))
                 .textSelection(.enabled)
         }
     }
 
-    private func formatted(_ seconds: Int, settings: AppSettings) -> String {
-        settings.debugMode
-            ? ScheduleGrid.preciseTimeString(fromSeconds: seconds)
-            : ScheduleGrid.timeString(fromSeconds: seconds)
-    }
 }

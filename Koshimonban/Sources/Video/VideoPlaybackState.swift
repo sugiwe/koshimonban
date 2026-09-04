@@ -34,6 +34,10 @@ final class VideoPlaybackState: ObservableObject {
     }
 
     func beginWaitingForPlayback() {
+        // 一度 .playing / .failed に落ち着いた結果は巻き戻さない。
+        // ディスプレイの抜き差しでオーバーレイを作り直すと makeNSView が再度走るため、
+        // ここで .loading に戻すと、再生中でも5秒後に「始まりませんでした」と誤判定する。
+        guard status == .loading else { return }
         status = .loading
         timeoutTask?.cancel()
         timeoutTask = Task { [weak self] in
@@ -56,7 +60,7 @@ final class VideoPlaybackState: ObservableObject {
         timeoutTask = nil
         guard !hasFailed else { return }
         status = .failed(reason)
-        NSLog("[Koshimonban] 動画の再生に失敗: \(reason)")
+        NSLog("[Koshimonban] 動画の再生に失敗: %@", reason)
     }
 
     func invalidate() {

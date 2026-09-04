@@ -21,10 +21,6 @@ struct LegacyWorkBlock: Codable, Identifiable, Equatable {
     /// 日付をまたぐ時間帯は v1 では非対応。設定画面でこれを弾く。
     var isValid: Bool { start < end }
 
-    func includes(weekday: Int) -> Bool { weekdays.contains(weekday) }
-
-    var displayString: String { "\(start.displayString)–\(end.displayString)" }
-
     // 欠けたキーがあっても既定値で読めるようにする（設定ファイルを手で編集されうるため）
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
