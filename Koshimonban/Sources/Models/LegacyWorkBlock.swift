@@ -1,7 +1,10 @@
 import Foundation
 
-/// 作業時間帯。ストレッチを発動させたい時間の範囲。
-struct WorkBlock: Codable, Identifiable, Equatable {
+/// v1 の設定ファイルにあった「時間帯 + 有効な曜日の集合」。
+///
+/// **移行のためだけに残している。** 現在の設定は WeekSchedule（曜日ごとの時間帯）で持つ。
+/// 古い settings.json を読んだときに WeekSchedule へ変換するのに使う。
+struct LegacyWorkBlock: Codable, Identifiable, Equatable {
     var id: UUID
     var start: TimeOfDay
     var end: TimeOfDay

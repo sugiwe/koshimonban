@@ -43,8 +43,8 @@ enum ScheduleGrid {
             return [(start: 0, end: secondsPerDay)]
         }
 
-        let ranges = settings.workBlocks
-            .filter { $0.isValid && $0.includes(weekday: weekday) }
+        let ranges = settings.schedule[index: weekday]
+            .filter { $0.isValid }
             .map { (start: $0.start.minutesFromMidnight * 60,
                     end:   $0.end.minutesFromMidnight * 60) }
             .sorted { $0.start < $1.start }

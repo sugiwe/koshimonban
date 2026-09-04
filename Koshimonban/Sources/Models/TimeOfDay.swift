@@ -6,16 +6,20 @@ struct TimeOfDay: Codable, Equatable, Hashable, Comparable {
     var hour: Int
     var minute: Int
 
+    /// 24:00 だけは特別に許す。
+    /// 「1日の終わり」を表す必要があるため（23:30–24:00 のタイルなど）。
+    /// 時刻としては存在しないが、範囲の終端としては使う。
     init(hour: Int, minute: Int) {
-        self.hour = min(max(hour, 0), 23)
-        self.minute = min(max(minute, 0), 59)
+        let clampedHour = min(max(hour, 0), 24)
+        self.hour = clampedHour
+        self.minute = clampedHour == 24 ? 0 : min(max(minute, 0), 59)
     }
 
     /// 0:00 からの経過分。時刻の比較や発動グリッドの計算はすべてこれで行う。
     var minutesFromMidnight: Int { hour * 60 + minute }
 
     init?(minutesFromMidnight minutes: Int) {
-        guard (0..<(24 * 60)).contains(minutes) else { return nil }
+        guard (0...(24 * 60)).contains(minutes) else { return nil }
         self.init(hour: minutes / 60, minute: minutes % 60)
     }
 
@@ -47,7 +51,8 @@ struct TimeOfDay: Codable, Equatable, Hashable, Comparable {
         let parts = string.split(separator: ":")
         guard parts.count == 2,
               let hour = Int(parts[0]), let minute = Int(parts[1]),
-              (0...23).contains(hour), (0...59).contains(minute)
+              (0...24).contains(hour), (0...59).contains(minute),
+              hour < 24 || minute == 0
         else { return nil }
         self.init(hour: hour, minute: minute)
     }
