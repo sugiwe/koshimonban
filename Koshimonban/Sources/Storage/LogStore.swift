@@ -48,7 +48,7 @@ final class LogStore: ObservableObject {
         guard !loadedMonths.contains(month) else { return }
         loadedMonths.insert(month)
 
-        let url = AppPaths.logFile(for: date)
+        let url = AppPaths.logFile(for: Self.monthKey(for: date))
         guard FileManager.default.fileExists(atPath: url.path) else { return }
 
         do {
@@ -60,7 +60,7 @@ final class LogStore: ObservableObject {
         } catch {
             // 壊れていても消さない。退避して、その月は空として続ける。
             AppPaths.quarantine(url)
-            NSLog("[Koshimonban] \(month) の記録を読めませんでした: \(error.localizedDescription)")
+            NSLog("[Koshimonban] %@ の記録を読めませんでした: %@", month, error.localizedDescription)
         }
     }
 
@@ -82,9 +82,9 @@ final class LogStore: ObservableObject {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
             let data = try encoder.encode(entries)
-            try data.write(to: AppPaths.logFile(for: date), options: .atomic)
+            try data.write(to: AppPaths.logFile(for: Self.monthKey(for: date)), options: .atomic)
         } catch {
-            NSLog("[Koshimonban] 記録を保存できませんでした: \(error.localizedDescription)")
+            NSLog("[Koshimonban] 記録を保存できませんでした: %@", error.localizedDescription)
         }
     }
 
@@ -95,6 +95,7 @@ final class LogStore: ObservableObject {
     func generateDummyData(days: Int = 28) {
         let calendar = Calendar.current
         var written = 0
+        var touchedDates: [Date] = []
         for offset in 0..<days {
             guard let date = calendar.date(byAdding: .day, value: -offset, to: Date()) else { continue }
             loadMonthIfNeeded(for: date)
@@ -119,16 +120,18 @@ final class LogStore: ObservableObject {
                 ))
             }
             cache[day] = records
+            touchedDates.append(date)
             written += 1
         }
-        // 触った月をすべて書き出す
-        for offset in stride(from: 0, through: days, by: 15) {
-            if let date = calendar.date(byAdding: .day, value: -offset, to: Date()) {
-                writeMonth(for: date)
-            }
+        // 触った月をすべて書き出す。
+        // 日付を飛ばし飛ばしに推測すると、月をまたぐ範囲で書き漏らしが出る。
+        for date in touchedDates.reduce(into: [String: Date]()) { result, date in
+            result[Self.monthKey(for: date)] = date
+        }.values {
+            writeMonth(for: date)
         }
         revision += 1
-        NSLog("[Koshimonban] ダミーデータを \(written) 日分生成しました")
+        NSLog("[Koshimonban] ダミーデータを %d 日分生成しました", written)
     }
 
     /// 生成したダミーを含め、記録を全部消す。

@@ -31,11 +31,18 @@ final class BreakSession: ObservableObject {
     @Published private(set) var videoLeadInRemaining: Int
 
     let totalSeconds: Int
+    /// 記録に残す発動時刻。経過時間の計算には使わない（下の startedInstant を使う）。
     let startedAt: Date
+    /// 経過時間を測るための単調増加の時計。
+    ///
+    /// **壁時計（Date）で測ってはいけない。** 休憩中に NTP 同期・タイムゾーン変更・手動の時刻変更で
+    /// 時計が巻き戻ると経過時間が負になり、残り時間が増え続けて 0 に到達しない。
+    /// オーバーレイはメニューバーも覆うので、閉じられないまま Mac が使えなくなる。
+    /// ContinuousClock はスリープ中も進むので、Date と同じ「実際に経過した時間」を表しつつ
+    /// 時刻の変更には影響されない。
+    private let startedInstant = ContinuousClock.now
     /// スキップが解禁されるまでの秒数（初期値）。経過時間から残りを再計算するために保持する。
     private let skipUnlockSeconds: Int
-    /// Phase 2 で再生した動画のタイトルが入る
-    var videoTitle: String?
 
     /// 決着したときに1度だけ呼ばれる。
     var onFinish: ((BreakResult, SkipReason?, Int) -> Void)?
@@ -66,9 +73,8 @@ final class BreakSession: ObservableObject {
     private func tick() {
         guard phase != .finished else { return }
 
-        // 経過時間は Date から計算する。Timer の発火回数を数えると、
-        // 負荷やスリープでズレが蓄積するため。
-        let elapsed = Date().timeIntervalSince(startedAt)
+        // Timer の発火回数を数えるとズレが蓄積するため、経過した時間そのものを測る。
+        let elapsed = Self.elapsedSeconds(since: startedInstant)
 
         skipUnlockRemaining = max(0, Int(ceil(Double(skipUnlockSeconds) - elapsed)))
 
@@ -77,7 +83,8 @@ final class BreakSession: ObservableObject {
             videoLeadInRemaining = max(0, Int(ceil(Double(Self.videoLeadInSeconds) - elapsed)))
         }
 
-        let remaining = max(0, Int(ceil(Double(totalSeconds) - elapsed)))
+        // 上限も掛ける。時計まわりで何が起きても totalSeconds 秒で必ず閉じることを保証する。
+        let remaining = min(totalSeconds, max(0, Int(ceil(Double(totalSeconds) - elapsed))))
         if remaining != remainingSeconds { remainingSeconds = remaining }
 
         // 理由の選択中でもカウントダウンが 0 になったら完了として閉じる。
@@ -91,11 +98,14 @@ final class BreakSession: ObservableObject {
 
     var canSkip: Bool { skipUnlockRemaining <= 0 }
 
-    var elapsedSeconds: Int { max(0, Int(Date().timeIntervalSince(startedAt))) }
+    var elapsedSeconds: Int {
+        min(totalSeconds, max(0, Int(Self.elapsedSeconds(since: startedInstant))))
+    }
 
-    var progress: Double {
-        guard totalSeconds > 0 else { return 1 }
-        return 1 - (Double(remainingSeconds) / Double(totalSeconds))
+    private static func elapsedSeconds(since instant: ContinuousClock.Instant) -> Double {
+        let duration = ContinuousClock.now - instant
+        let components = duration.components
+        return Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 
     var countdownText: String {

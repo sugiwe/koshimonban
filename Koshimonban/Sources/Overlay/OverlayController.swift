@@ -36,13 +36,22 @@ final class OverlayController: ObservableObject {
     private var firedAt = Date()
     /// 全ディスプレイで同じ動きをさせるため、1回の休憩につき1つを共有する。
     private var gate: GateAnimation?
+    /// 門の開閉を進めている Task。
+    /// 閉じている最中に次の指示が来たら、前のものを止めてから始める。
+    /// 保持しないでおくと、閉じる Task と開く Task が同じ GateAnimation を奪い合う。
+    private var gateTask: Task<Void, Never>?
+    /// 門を開いてウィンドウを片付け終えるまで true。
+    /// `isVisible` は dismiss の時点で false になるが、実際のウィンドウは
+    /// 0.5 秒ほど画面に残る。その隙間に次の発動を受け付けると、
+    /// 古いウィンドウが入力を奪ったまま新しいオーバーレイが作られてしまう。
+    private var isTearingDown = false
     private var screenChangeObserver: NSObjectProtocol?
 
     // MARK: 表示
 
     func present(breakSeconds: Int, skipUnlockSeconds: Int, video: VideoEntry?,
                  scheduledSeconds: Int, firedAt: Date = Date()) {
-        guard !isVisible else { return }
+        guard !isVisible, !isTearingDown else { return }
 
         self.scheduledSeconds = scheduledSeconds
         self.firedAt = firedAt
@@ -50,14 +59,13 @@ final class OverlayController: ObservableObject {
         self.playbackState = video == nil ? nil : VideoPlaybackState()
 
         let session = BreakSession(breakSeconds: breakSeconds, skipUnlockSeconds: skipUnlockSeconds)
-        session.videoTitle = video?.displayTitle
         session.onFinish = { [weak self] result, reason, shownSeconds in
             guard let self else { return }
             let outcome = BreakOutcome(
                 result: result,
                 skipReason: reason,
                 shownSeconds: shownSeconds,
-                videoTitle: self.session?.videoTitle,
+                videoTitle: video?.displayTitle,
                 scheduledSeconds: self.scheduledSeconds,
                 firedAt: self.firedAt
             )
@@ -128,15 +136,18 @@ final class OverlayController: ObservableObject {
 
     /// 門を閉じ、閉じきってから中身を出す。
     private func closeGate(_ gate: GateAnimation) {
-        Task { @MainActor in
+        gateTask?.cancel()
+        gateTask = Task { @MainActor in
             // 開いた状態を1フレーム描いてから閉じ始める。
             // 間を置かずに値を変えると、SwiftUI が初期状態を描く前に確定してしまい、
             // 最初から閉じた状態で出てしまう。
             try? await Task.sleep(for: .milliseconds(16))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: Self.gateCloseSeconds)) {
                 gate.isClosed = true
             }
             try? await Task.sleep(for: .seconds(Self.gateCloseSeconds))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: Self.contentFadeInSeconds)) {
                 gate.showsContent = true
             }
@@ -155,7 +166,18 @@ final class OverlayController: ObservableObject {
         self.gate = nil
         guard !closing.isEmpty else { return }
 
-        Task { @MainActor in
+        isTearingDown = true
+        gateTask?.cancel()
+        gateTask = Task { @MainActor in
+            // 片付けはキャンセルされても必ず最後まで走らせる。
+            // 途中で止まると、画面を覆ったままのウィンドウが残る。
+            defer {
+                for window in closing {
+                    window.orderOut(nil)
+                    window.contentView = nil
+                }
+                self.isTearingDown = false
+            }
             if let gate {
                 withAnimation(.easeOut(duration: Self.contentFadeOutSeconds)) {
                     gate.showsContent = false
@@ -165,10 +187,6 @@ final class OverlayController: ObservableObject {
                     gate.isClosed = false
                 }
                 try? await Task.sleep(for: .seconds(Self.gateOpenSeconds))
-            }
-            for window in closing {
-                window.orderOut(nil)
-                window.contentView = nil
             }
         }
     }

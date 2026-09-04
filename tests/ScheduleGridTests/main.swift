@@ -212,6 +212,77 @@ check("書き出しは曜日名をキーにした形になる",
 check("移行後は v1 形式と判定されない",
       AppSettings.isLegacyFormat(try! JSONEncoder().encode(migrated)) ? "v1" : "v1ではない", "v1ではない")
 
+print("\n=== 発動の判定（仕様書 3.2 の境界条件）===")
+let day = settings(blocks: [block("10:00", "12:00")])          // 10:30 11:00 11:30
+let daySlots = ScheduleGrid.slots(settings: day, weekday: 1)
+func at(_ time: String) -> Int { TimeOfDay(string: time)!.minutesFromMidnight * 60 }
+func decide(_ now: String, resolved: [String] = [], paused: Bool = false,
+            overlay: Bool = false, present: Bool = true, breakSec: Int = 180) -> String {
+    let context = ScheduleGrid.Context(
+        nowSeconds: at(now), resolved: Set(resolved.map(at)), isPaused: paused,
+        isOverlayVisible: overlay, isUserPresent: present, breakSeconds: breakSec)
+    let decisions = ScheduleGrid.decide(slots: daySlots, context: context)
+    guard !decisions.isEmpty else { return "なし" }
+    return decisions.map { decision in
+        switch decision {
+        case .fire(let slot): "発動:\(ScheduleGrid.timeString(fromSeconds: slot.at))"
+        case .resolve(let slot, let result, _):
+            "\(result.rawValue):\(ScheduleGrid.timeString(fromSeconds: slot.at))"
+        }
+    }.joined(separator: " ")
+}
+
+check("予定時刻ちょうどなら発動する", decide("10:30"), "発動:10:30")
+check("予定時刻の前なら何もしない", decide("10:29"), "なし")
+check("決着済みなら何もしない", decide("10:30", resolved: ["10:30"]), "なし")
+check("たまっている場合、古い分は取りこぼし、直近だけ発動する",
+      decide("11:30"), "missed:10:30 missed:11:00 発動:11:30")
+check("一時停止中は発動せず、一時停止として決着する",
+      decide("10:30", paused: true), "paused:10:30")
+check("一時停止中でも、たまった古い分は取りこぼしになる",
+      decide("11:30", paused: true), "missed:10:30 missed:11:00 paused:11:30")
+check("オーバーレイ表示中は二重に出さない（決着もさせない）",
+      decide("10:30", overlay: true), "なし")
+check("不在中（ロック・ユーザー切り替え）は発動しない",
+      decide("10:30", present: false), "なし")
+check("不在のまま作業時間帯が終われば取りこぼしになる",
+      decide("11:58", resolved: ["10:30", "11:00"], present: false), "missed:11:30")
+check("在席していても、追いつく前に時間帯が終われば取りこぼし",
+      decide("11:58", resolved: ["10:30", "11:00"]), "missed:11:30")
+check("時間帯の途中なら遅れても追いつける",
+      decide("11:00", resolved: ["10:30", "11:00"]), "なし")
+check("休憩が長いと、追いつける余地が早く尽きる",
+      decide("11:50", resolved: ["10:30", "11:00"], breakSec: 900), "missed:11:30")
+
+print("\n=== 設定値の上限（手で編集された settings.json 対策）===")
+let insane = """
+{"version":2,"intervalMinutes":999999999999999999,"breakSeconds":-5,
+ "preNotifyMinutes":9999,"skipUnlockSeconds":-1,"gridStartHour":99,"gridEndHour":-3,
+ "schedule":{"mon":[{"start":"10:00","end":"12:00"}]}}
+"""
+let clamped = try! JSONDecoder().decode(AppSettings.self, from: insane.data(using: .utf8)!)
+check("巨大な間隔は上限に丸められる", "\(clamped.intervalMinutes)", "\(24 * 60)")
+check("負の休憩は下限に丸められる", "\(clamped.breakSeconds)", "1")
+check("予告も範囲に収まる", "\(clamped.preNotifyMinutes)", "60")
+check("スキップ解禁も範囲に収まる", "\(clamped.skipUnlockSeconds)", "0")
+check("表示範囲も範囲に収まる", "\(clamped.gridStartHour)/\(clamped.gridEndHour)", "24/0")
+// 丸めたあとに掛け算してもあふれない = 起動時クラッシュのループにならない
+check("丸めた値なら秒への換算があふれない",
+      "\(clamped.effectiveIntervalSeconds)", "\(24 * 60 * 60)")
+
+print("\n=== 設定の妥当性チェック ===")
+func errorsOf(_ mutate: (inout AppSettings) -> Void) -> String {
+    var s = AppSettings.default
+    mutate(&s)
+    return s.validationErrors.isEmpty ? "問題なし" : "問題あり"
+}
+check("既定値は問題なし", errorsOf { _ in }, "問題なし")
+check("時間帯が空なら問題あり", errorsOf { $0.schedule = WeekSchedule() }, "問題あり")
+check("休憩が間隔より長ければ問題あり",
+      errorsOf { $0.intervalMinutes = 30; $0.breakSeconds = 3600 }, "問題あり")
+check("デバッグモードでも同じ基準で判定される（間隔30秒・休憩180秒）",
+      errorsOf { $0.debugMode = true; $0.intervalMinutes = 30; $0.breakSeconds = 180 }, "問題あり")
+
 print("")
 if failures == 0 {
     print("すべて期待どおりです（\(failures) 件の失敗）")

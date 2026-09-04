@@ -21,11 +21,11 @@ enum AppPaths {
         supportDirectory.appendingPathComponent("logs", isDirectory: true)
     }
 
-    static func logFile(for date: Date) -> URL {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return logsDirectory.appendingPathComponent("\(formatter.string(from: date)).json")
+    /// 月ごとの記録ファイル。
+    /// 月キーの定義は LogStore に1つだけ置く。ここで別に組み立てると、
+    /// 片方を変えたときに保存先と読み込み先が食い違う。
+    static func logFile(for monthKey: String) -> URL {
+        logsDirectory.appendingPathComponent("\(monthKey).json")
     }
 
     /// 起動時に一度呼ぶ。存在すれば何もしない。
@@ -43,6 +43,6 @@ enum AppPaths {
         let stamp = formatter.string(from: Date())
         let destination = url.appendingPathExtension("corrupt-\(stamp)")
         try? FileManager.default.moveItem(at: url, to: destination)
-        NSLog("[Koshimonban] 壊れたファイルを退避しました: \(destination.path)")
+        NSLog("[Koshimonban] 壊れたファイルを退避しました: %@", destination.path)
     }
 }

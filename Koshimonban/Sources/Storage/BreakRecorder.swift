@@ -44,8 +44,8 @@ enum BreakRecorder {
     // MARK: 変換
 
     private static func timeOfDay(fromSeconds seconds: Int) -> TimeOfDay {
-        let clamped = ((seconds % ScheduleGrid.secondsPerDay) + ScheduleGrid.secondsPerDay) % ScheduleGrid.secondsPerDay
-        return TimeOfDay(hour: clamped / 3600, minute: (clamped % 3600) / 60)
+        let normalized = ScheduleGrid.normalized(seconds)
+        return TimeOfDay(hour: normalized / 3600, minute: (normalized % 3600) / 60)
     }
 
     private static func timeOfDay(from date: Date) -> TimeOfDay {

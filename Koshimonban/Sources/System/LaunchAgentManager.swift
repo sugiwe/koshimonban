@@ -96,8 +96,9 @@ final class LaunchAgentManager: ObservableObject {
             return
         }
 
-        // 古い登録が残っていると bootstrap が失敗するので、先に外す
-        _ = runLaunchctl(["bootout", "gui/\(getuid())/\(Self.label)"])
+        // 古い登録が残っていると bootstrap が失敗するので、先に外す。
+        // ただし自分自身がそのジョブとして動いている場合は外してはいけない（後述）。
+        bootoutIfSafe()
         let result = runLaunchctl(["bootstrap", "gui/\(getuid())", Self.plistURL.path])
         if result.status != 0 {
             lastError = "launchctl に登録できませんでした: \(result.output)"
@@ -107,9 +108,35 @@ final class LaunchAgentManager: ObservableObject {
 
     func uninstall() {
         lastError = nil
-        _ = runLaunchctl(["bootout", "gui/\(getuid())/\(Self.label)"])
+        // plist を先に消す。bootout で自分が終了させられた場合でも、
+        // 「登録は外れたのに plist が残っていて次のログインでまた起動する」状態を避ける。
         try? FileManager.default.removeItem(at: Self.plistURL)
+        bootoutIfSafe()
         refresh()
+    }
+
+    /// `launchctl bootout` は、ジョブを外すと同時にそのジョブのプロセスを終了させる。
+    ///
+    /// **自分自身が launchd 経由で起動している場合、これを呼ぶと自分が死ぬ。**
+    /// ログイン時自動起動が効いている通常運用がまさにその状態で、
+    /// 何も考えずに呼ぶと「オフにした瞬間にアプリが消えて、後続の処理が走らない」ことになる。
+    /// 設定画面が案内している「オフ→オン」の手順も1手目で止まる。
+    ///
+    /// 自分がそのジョブ配下なら bootout は諦める。plist を消してあるので、
+    /// 次のログインからは起動しなくなる。
+    private func bootoutIfSafe() {
+        guard !isRunningAsManagedJob else {
+            NSLog("[Koshimonban] %@", "自分自身が launchd 管理下のため bootout を省略しました（次回ログインから反映されます）")
+            return
+        }
+        _ = runLaunchctl(["bootout", "gui/\(getuid())/\(Self.label)"])
+    }
+
+    /// 現在のプロセスが、このラベルの launchd ジョブとして動いているか。
+    private var isRunningAsManagedJob: Bool {
+        let result = runLaunchctl(["print", "gui/\(getuid())/\(Self.label)"])
+        guard result.status == 0 else { return false }
+        return result.output.contains("pid = \(ProcessInfo.processInfo.processIdentifier)")
     }
 
     // MARK: launchctl

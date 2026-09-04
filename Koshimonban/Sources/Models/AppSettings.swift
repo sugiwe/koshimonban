@@ -16,12 +16,30 @@ struct AppSettings: Codable, Equatable {
     var preNotifyMinutes: Int
     var skipUnlockSeconds: Int
     var videos: [VideoEntry]
-    var launchAtLogin: Bool
     var debugMode: Bool
     /// デバッグモード時、作業時間帯の判定を無視して常に作業中とみなす
     var debugIgnoreWorkBlocks: Bool
 
     static let currentVersion = 2
+
+    /// 設定値の上限。
+    ///
+    /// settings.json は人が手で開いて直せることを重視しているぶん、
+    /// **異常な値がそのまま入ってくる。** 上限を掛けずにいると
+    /// `intervalMinutes * 60` のような計算が Int をあふれてクラッシュし、
+    /// LaunchAgent の KeepAlive が再起動を繰り返して設定画面すら開けなくなる。
+    /// ここで丸めておけば「読めた値は必ず安全な範囲」が保証される。
+    enum Limits {
+        static let interval = 1...(24 * 60)
+        static let breakSeconds = 1...(60 * 60)
+        static let preNotifyMinutes = 0...60
+        static let skipUnlockSeconds = 0...60
+        static let gridHour = 0...24
+    }
+
+    private static func clamp(_ value: Int, to range: ClosedRange<Int>) -> Int {
+        min(max(value, range.lowerBound), range.upperBound)
+    }
 
     static let `default` = AppSettings(
         version: currentVersion,
@@ -36,7 +54,6 @@ struct AppSettings: Codable, Equatable {
         preNotifyMinutes: 1,
         skipUnlockSeconds: 5,
         videos: [],
-        launchAtLogin: true,
         debugMode: false,
         debugIgnoreWorkBlocks: false
     )
@@ -44,17 +61,16 @@ struct AppSettings: Codable, Equatable {
     init(version: Int, schedule: WeekSchedule, gridStartHour: Int, gridEndHour: Int,
          intervalMinutes: Int, breakSeconds: Int,
          preNotifyMinutes: Int, skipUnlockSeconds: Int, videos: [VideoEntry],
-         launchAtLogin: Bool, debugMode: Bool, debugIgnoreWorkBlocks: Bool) {
+         debugMode: Bool, debugIgnoreWorkBlocks: Bool) {
         self.version = version
         self.schedule = schedule
-        self.gridStartHour = gridStartHour
-        self.gridEndHour = gridEndHour
-        self.intervalMinutes = intervalMinutes
-        self.breakSeconds = breakSeconds
-        self.preNotifyMinutes = preNotifyMinutes
-        self.skipUnlockSeconds = skipUnlockSeconds
+        self.gridStartHour = Self.clamp(gridStartHour, to: Limits.gridHour)
+        self.gridEndHour = Self.clamp(gridEndHour, to: Limits.gridHour)
+        self.intervalMinutes = Self.clamp(intervalMinutes, to: Limits.interval)
+        self.breakSeconds = Self.clamp(breakSeconds, to: Limits.breakSeconds)
+        self.preNotifyMinutes = Self.clamp(preNotifyMinutes, to: Limits.preNotifyMinutes)
+        self.skipUnlockSeconds = Self.clamp(skipUnlockSeconds, to: Limits.skipUnlockSeconds)
         self.videos = videos
-        self.launchAtLogin = launchAtLogin
         self.debugMode = debugMode
         self.debugIgnoreWorkBlocks = debugIgnoreWorkBlocks
     }
@@ -74,7 +90,6 @@ struct AppSettings: Codable, Equatable {
             preNotifyMinutes:  try c.decodeIfPresent(Int.self,          forKey: .preNotifyMinutes)  ?? d.preNotifyMinutes,
             skipUnlockSeconds: try c.decodeIfPresent(Int.self,          forKey: .skipUnlockSeconds) ?? d.skipUnlockSeconds,
             videos:            try c.decodeIfPresent([VideoEntry].self, forKey: .videos)            ?? d.videos,
-            launchAtLogin:     try c.decodeIfPresent(Bool.self,         forKey: .launchAtLogin)     ?? d.launchAtLogin,
             debugMode:         try c.decodeIfPresent(Bool.self,         forKey: .debugMode)         ?? d.debugMode,
             debugIgnoreWorkBlocks: try c.decodeIfPresent(Bool.self,     forKey: .debugIgnoreWorkBlocks) ?? d.debugIgnoreWorkBlocks
         )
@@ -135,7 +150,9 @@ struct AppSettings: Codable, Equatable {
         if breakSeconds < 1 {
             errors.append("休憩の長さは1秒以上にしてください。")
         }
-        if !debugMode && breakSeconds > intervalMinutes * 60 {
+        // effectiveIntervalSeconds を使えば、デバッグモードかどうかで場合分けせずに済む。
+        // デバッグ中の「間隔30秒・休憩180秒」という発動不能な設定にも気づける。
+        if breakSeconds > effectiveIntervalSeconds {
             errors.append("休憩の長さが発動間隔より長いため、発動できません。")
         }
         return errors

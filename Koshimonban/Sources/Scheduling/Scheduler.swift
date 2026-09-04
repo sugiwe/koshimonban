@@ -57,11 +57,30 @@ final class Scheduler: ObservableObject {
     private var resolvedSlots: Set<Int> = []
     /// すでに予告を出した予定
     private var preNotifiedSlots: Set<Int> = []
+    /// その日の決着状況を、起動時に一度だけ組み立てたか
+    private var hasSeededToday = false
+    /// 発動時刻に影響する設定の指紋。変化したらグリッドが動いたとみなす。
+    private var lastScheduleSignature: Int?
     private var resolvedDay: Date = .distantPast
     /// この時刻までは発動しない（復帰直後の猶予）
     private var graceUntil: Date?
 
     private var settings: AppSettings { SettingsStore.shared.settings }
+
+    /// ユーザーが実際に画面の前にいるか。
+    ///
+    /// 発動・予告・状態表示のすべてがこの1つを見る。以前は場所ごとに
+    /// 「ロック中か」だけを見たり「ユーザー切り替え中か」も見たりしていて、
+    /// ユーザー切り替え中でも予告だけ出る、といった食い違いが起きていた。
+    private var isUserPresent: Bool {
+        !screenState.isScreenLocked && screenState.isSessionOnConsole
+    }
+
+    /// 復帰直後の猶予中か
+    private func isInGrace(at now: Date) -> Bool {
+        guard let graceUntil else { return false }
+        return graceUntil > now
+    }
 
     private var calendar: Calendar { Calendar.current }
 
@@ -156,66 +175,120 @@ final class Scheduler: ObservableObject {
 
         guard isRunning else { return }
 
-        if let graceUntil, graceUntil > now {
-            return
-        }
+        if isInGrace(at: now) { return }
 
         let slots = ScheduleGrid.slots(settings: settings, date: now, calendar: calendar)
         let nowSeconds = ScheduleGrid.secondsFromMidnight(for: now, calendar: calendar)
 
+        seedResolvedSlotsIfNeeded(slots: slots, nowSeconds: nowSeconds, now: now)
         evaluatePreNotify(slots: slots, nowSeconds: nowSeconds)
 
-        let due = slots.filter { $0.at <= nowSeconds && !resolvedSlots.contains($0.at) }
-        guard let latest = due.last else { return }
+        let context = ScheduleGrid.Context(
+            nowSeconds: nowSeconds,
+            resolved: resolvedSlots,
+            isPaused: isPaused,
+            isOverlayVisible: isOverlayVisible(),
+            isUserPresent: isUserPresent,
+            breakSeconds: settings.breakSeconds
+        )
 
-        // 複数たまっている場合、古いものは取りこぼしとして確定させる。
-        // まとめて何回も発動させても意味がないため、追いつくのは直近の1回だけ。
-        for stale in due.dropLast() {
-            resolve(stale, as: .missed, at: now,
-                    note: "発動時刻 \(display(stale.at)) を過ぎたまま次の予定時刻になりました")
-        }
-
-        if isPaused {
-            resolve(latest, as: .paused, at: now, note: "一時停止中でした")
-            return
-        }
-
-        if isOverlayVisible() {
-            // 二重に出さない。決着はオーバーレイ側でつく。
-            return
-        }
-
-        if screenState.isScreenLocked || !screenState.isSessionOnConsole {
-            // ロック中は発動しない。ただし作業時間帯が終わっていれば、もう追いつけないので確定させる。
-            if !ScheduleGrid.canFire(slot: latest, atSeconds: nowSeconds, breakSeconds: settings.breakSeconds) {
-                resolve(latest, as: .missed, at: now, note: "画面がロックされたまま作業時間帯が終わりました")
+        for decision in ScheduleGrid.decide(slots: slots, context: context) {
+            switch decision {
+            case .resolve(let slot, let result, let cause):
+                resolve(slot, as: result, at: now, note: note(for: cause, slot: slot))
+            case .fire(let slot):
+                fire(slot, at: now, nowSeconds: nowSeconds)
             }
-            return
         }
+    }
 
-        guard ScheduleGrid.canFire(slot: latest, atSeconds: nowSeconds, breakSeconds: settings.breakSeconds) else {
-            resolve(latest, as: .missed, at: now, note: "追いつく前に作業時間帯が終わりました")
-            return
-        }
-
-        resolvedSlots.insert(latest.at)
+    private func fire(_ slot: ScheduleGrid.Slot, at now: Date, nowSeconds: Int) {
+        resolvedSlots.insert(slot.at)
         onCancelPreNotify?()
-        let lateBy = nowSeconds - latest.at
+        let lateBy = nowSeconds - slot.at
         if lateBy >= Int(Self.tickInterval) {
-            log(.fire, "発動（予定 \(display(latest.at)) / \(lateBy)秒遅れで追いつき）")
+            log(.fire, "発動（予定 \(display(slot.at)) / \(lateBy)秒遅れで追いつき）")
         } else {
-            log(.fire, "発動（予定 \(display(latest.at))）")
+            log(.fire, "発動（予定 \(display(slot.at))）")
         }
-        onFire?(latest, now)
+        onFire?(slot, now)
+    }
+
+    private func note(for cause: ScheduleGrid.SkipCause, slot: ScheduleGrid.Slot) -> String {
+        switch cause {
+        case .overtakenByNextSlot:
+            "発動時刻 \(display(slot.at)) を過ぎたまま次の予定時刻になりました"
+        case .lockedUntilBlockEnded:
+            "画面がロックされたまま作業時間帯が終わりました"
+        case .notCaughtUpBeforeBlockEnded:
+            "追いつく前に作業時間帯が終わりました"
+        case .pausedAtSlot:
+            "一時停止中でした"
+        }
     }
 
     // MARK: 補助
 
+    /// 発動時刻に影響する設定だけから作る指紋。
+    /// 休憩の長さも含めるのは、時間帯の終端に収まるかの判定が変わるため。
+    private func scheduleSignature() -> Int {
+        var hasher = Hasher()
+        hasher.combine(settings.schedule)
+        hasher.combine(settings.intervalMinutes)
+        hasher.combine(settings.breakSeconds)
+        hasher.combine(settings.debugMode)
+        hasher.combine(settings.debugIgnoreWorkBlocks)
+        return hasher.finalize()
+    }
+
+    /// 過去の予定を「記録せずに決着済み」にする。
+    ///
+    /// `resolvedSlots` は経過秒だけを持っていて、どの設定で決着したかを覚えていない。
+    /// そのため何もしないと次の2つが起きる。
+    ///
+    /// - **起動のたび**、その日のすでに済んだ回が未決着に見えて、取りこぼしとして重複記録される
+    /// - **設定を変えるたび**、新しいグリッドの過去分が一斉に取りこぼしとして記録され、
+    ///   直近の1件がその場で発動する（時間割表で午前を塗った瞬間に画面を奪われる）
+    ///
+    /// どちらも実際には起きていない回なので、記録に残してはいけない。
+    /// このアプリが記録してよいのは、自分が動いていて観測できた分だけ。
+    private func seedResolvedSlotsIfNeeded(slots: [ScheduleGrid.Slot], nowSeconds: Int, now: Date) {
+        let signature = scheduleSignature()
+        let scheduleChanged = lastScheduleSignature != nil && lastScheduleSignature != signature
+        lastScheduleSignature = signature
+
+        let past = slots.filter { $0.at <= nowSeconds }
+
+        if !hasSeededToday {
+            hasSeededToday = true
+            // 起動前に何が起きたかは観測していない。記録には残さない。
+            // ただし直近の1件だけは、スリープ復帰と同じ扱いで追いつかせる。
+            for slot in past.dropLast() {
+                resolvedSlots.insert(slot.at)
+            }
+            // すでに記録がある回は、決着済みとして扱う（重複発動を防ぐ）
+            for record in LogStore.shared.records(for: now) {
+                resolvedSlots.insert(record.scheduledAt.minutesFromMidnight * 60)
+            }
+            return
+        }
+
+        guard scheduleChanged else { return }
+
+        var newly = 0
+        for slot in past where !resolvedSlots.contains(slot.at) {
+            resolvedSlots.insert(slot.at)
+            newly += 1
+        }
+        if newly > 0 {
+            log(.info, "設定が変わったため、過去の \(newly) 件を記録せずに決着させました")
+        }
+    }
+
     /// 次の発動が近づいていれば予告を出す。1つの予定につき1回だけ。
     private func evaluatePreNotify(slots: [ScheduleGrid.Slot], nowSeconds: Int) {
         let leadSeconds = settings.effectivePreNotifySeconds
-        guard leadSeconds > 0, !isPaused, !isOverlayVisible() else { return }
-        guard !screenState.isScreenLocked else { return }
+        guard leadSeconds > 0, !isPaused, !isOverlayVisible(), isUserPresent else { return }
         guard let next = slots.first(where: { $0.at > nowSeconds }) else { return }
 
         let remaining = next.at - nowSeconds
@@ -239,6 +312,7 @@ final class Scheduler: ObservableObject {
         resolvedDay = today
         resolvedSlots.removeAll()
         preNotifiedSlots.removeAll()
+        hasSeededToday = false
         // 「今日はもう停止」を日をまたいで持ち越さない
         if let pausedUntil, pausedUntil <= now {
             self.pausedUntil = nil
@@ -273,9 +347,9 @@ final class Scheduler: ObservableObject {
             statusLine = "停止中"
         } else if isPaused, let pausedUntil {
             statusLine = "一時停止中（\(formatted(pausedUntil)) まで）"
-        } else if let graceUntil, graceUntil > now {
+        } else if isInGrace(at: now) {
             statusLine = "復帰直後のため待機中"
-        } else if screenState.isScreenLocked {
+        } else if !isUserPresent {
             statusLine = "画面ロック中のため待機"
         } else if isOverlayVisible() {
             statusLine = "休憩中"
@@ -285,9 +359,7 @@ final class Scheduler: ObservableObject {
     }
 
     private func display(_ seconds: Int) -> String {
-        settings.debugMode
-            ? ScheduleGrid.preciseTimeString(fromSeconds: seconds)
-            : ScheduleGrid.timeString(fromSeconds: seconds)
+        ScheduleGrid.timeString(fromSeconds: seconds, settings: settings)
     }
 
     private func durationText(_ seconds: Int) -> String {
@@ -306,7 +378,9 @@ final class Scheduler: ObservableObject {
     private func log(_ kind: Event.Kind, _ message: String) {
         events.append(Event(at: Date(), kind: kind, message: message))
         if events.count > 200 { events.removeFirst(events.count - 200) }
-        NSLog("[Koshimonban] \(message)")
+        // 補間済みの文字列をそのまま渡すと、message に %@ などが含まれていた場合に
+        // 存在しない可変引数を読みに行く。必ず書式と値を分ける。
+        NSLog("[Koshimonban] %@", message)
     }
 
     func clearEvents() {

@@ -20,6 +20,7 @@ struct YouTubePlayerView: NSViewRepresentable {
         // 休憩のたびに cookie を溜めない
         configuration.websiteDataStore = .nonPersistent()
         configuration.userContentController.add(context.coordinator, name: "player")
+        context.coordinator.userContentController = configuration.userContentController
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
@@ -35,7 +36,8 @@ struct YouTubePlayerView: NSViewRepresentable {
     func updateNSView(_ webView: WKWebView, context: Context) { }
 
     static func dismantleNSView(_ webView: WKWebView, coordinator: Coordinator) {
-        webView.configuration.userContentController.removeScriptMessageHandler(forName: "player")
+        coordinator.userContentController?.removeScriptMessageHandler(forName: "player")
+        coordinator.userContentController = nil
         webView.stopLoading()
         webView.loadHTMLString("", baseURL: nil)
     }
@@ -44,8 +46,17 @@ struct YouTubePlayerView: NSViewRepresentable {
 
     final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         private let state: VideoPlaybackState
+        /// 登録したコントローラそのものを控える。
+        /// `webView.configuration` はコピーを返すため、そちら経由の解除は
+        /// 同じインスタンスに届く保証がない。届かないと WebKit 側から
+        /// この Coordinator が参照されたまま残る。
+        fileprivate var userContentController: WKUserContentController?
 
         init(state: VideoPlaybackState) { self.state = state }
+
+        deinit {
+            userContentController?.removeScriptMessageHandler(forName: "player")
+        }
 
         func userContentController(_ controller: WKUserContentController,
                                    didReceive message: WKScriptMessage) {

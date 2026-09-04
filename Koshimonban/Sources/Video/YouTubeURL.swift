@@ -33,7 +33,10 @@ enum YouTubeURL {
             return segments.first.flatMap { isValidID($0) ? $0 : nil }
         }
 
-        guard host.contains("youtube.com") || host.contains("youtube-nocookie.com") else {
+        // 部分一致だと youtube.com.example.net のような別ホストも通ってしまう。
+        // 埋め込み先は nocookie に固定しているので実害は無いが、判定の意図と合わない。
+        let youtubeHosts = ["youtube.com", "youtube-nocookie.com"]
+        guard youtubeHosts.contains(where: { host == $0 || host.hasSuffix("." + $0) }) else {
             return nil
         }
 
@@ -56,10 +59,5 @@ enum YouTubeURL {
     static func isValidID(_ candidate: String) -> Bool {
         guard !candidate.isEmpty, candidate.count <= 32 else { return false }
         return candidate.unicodeScalars.allSatisfy { allowedIDCharacters.contains($0) }
-    }
-
-    /// 埋め込み用の URL。cookie を置かない nocookie ドメインを使う。
-    static func embedURL(forID id: String) -> URL? {
-        URL(string: "https://www.youtube-nocookie.com/embed/\(id)")
     }
 }
