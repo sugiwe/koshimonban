@@ -111,25 +111,6 @@ final class SettingsStore: ObservableObject {
         loadWarning = nil
     }
 
-    /// 入力欄で範囲外の値が入った場合に安全な範囲へ丸める。
-    /// AppSettings の init が丸めるので、詰め直すだけで効く。
-    func clampValues() {
-        settings = AppSettings(
-            version: settings.version,
-            schedule: settings.schedule,
-            gridStartHour: settings.gridStartHour,
-            gridEndHour: settings.gridEndHour,
-            intervalMinutes: settings.intervalMinutes,
-            breakSeconds: settings.breakSeconds,
-            preNotifyMinutes: settings.preNotifyMinutes,
-            skipUnlockSeconds: settings.skipUnlockSeconds,
-            videos: settings.videos,
-            pauseDuringMeetings: settings.pauseDuringMeetings,
-            debugMode: settings.debugMode,
-            debugIgnoreWorkBlocks: settings.debugIgnoreWorkBlocks
-        )
-    }
-
     /// 既定値に戻す（設定を壊してしまった時の逃げ道）
     func resetToDefaults() {
         settings = .default

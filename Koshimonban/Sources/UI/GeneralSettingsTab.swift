@@ -18,39 +18,26 @@ struct GeneralSettingsTab: View {
             }
 
             Section("タイミング") {
-                LabeledContent("発動の間隔") {
-                    HStack {
-                        TextField("", value: settings.intervalMinutes, format: .number)
-                            .onSubmit { settingsStore.clampValues() }
-                            .frame(width: 60).multilineTextAlignment(.trailing)
-                        Text(settingsStore.settings.debugMode ? "秒（デバッグモード）" : "分")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                LabeledContent("休憩の長さ") {
-                    HStack {
-                        TextField("", value: settings.breakSeconds, format: .number)
-                            .onSubmit { settingsStore.clampValues() }
-                            .frame(width: 60).multilineTextAlignment(.trailing)
-                        Text("秒").foregroundStyle(.secondary)
-                    }
-                }
-                LabeledContent("予告") {
-                    HStack {
-                        TextField("", value: settings.preNotifyMinutes, format: .number)
-                            .onSubmit { settingsStore.clampValues() }
-                            .frame(width: 60).multilineTextAlignment(.trailing)
-                        Text("分前（0 で無効）").foregroundStyle(.secondary)
-                    }
-                }
-                LabeledContent("スキップの解禁まで") {
-                    HStack {
-                        TextField("", value: settings.skipUnlockSeconds, format: .number)
-                            .onSubmit { settingsStore.clampValues() }
-                            .frame(width: 60).multilineTextAlignment(.trailing)
-                        Text("秒").foregroundStyle(.secondary)
-                    }
-                }
+                NumberSettingRow(
+                    title: "発動の間隔",
+                    value: settings.intervalMinutes,
+                    range: AppSettings.Limits.interval,
+                    unit: settingsStore.settings.debugMode ? "秒（デバッグモード）" : "分")
+                NumberSettingRow(
+                    title: "休憩の長さ",
+                    value: settings.breakSeconds,
+                    range: AppSettings.Limits.breakSeconds,
+                    unit: "秒")
+                NumberSettingRow(
+                    title: "予告",
+                    value: settings.preNotifyMinutes,
+                    range: AppSettings.Limits.preNotifyMinutes,
+                    unit: "分前（0 で無効）")
+                NumberSettingRow(
+                    title: "スキップの解禁まで",
+                    value: settings.skipUnlockSeconds,
+                    range: AppSettings.Limits.skipUnlockSeconds,
+                    unit: "秒")
             }
 
             Section {
@@ -175,5 +162,42 @@ private struct MeetingStateView: View {
 
     private func refresh() {
         states = detector.deviceStates()
+    }
+}
+
+/// 数値の設定1項目。手入力と上下ボタンの両方で変えられる。
+///
+/// 手入力だけだと、1つ増やすのにキーボードへ持ち替えることになる。
+/// 上下ボタンだけだと、大きく変えるのに何度も押すことになる。両方置く。
+private struct NumberSettingRow: View {
+    let title: String
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+    let unit: String
+
+    var body: some View {
+        LabeledContent(title) {
+            HStack(spacing: 6) {
+                TextField("", value: clampedValue, format: .number)
+                    .frame(width: 60)
+                    .multilineTextAlignment(.trailing)
+                Stepper("", value: clampedValue, in: range)
+                    .labelsHidden()
+                Text(unit)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// 書き込むときに範囲へ収める。
+    ///
+    /// 上下ボタンは `in:` で止まるが、手入力は素通しになる。
+    /// 桁を打ち間違えただけで、秒への換算があふれてアプリが起動しなくなる経路があるため、
+    /// 入った時点で丸めておく。
+    private var clampedValue: Binding<Int> {
+        Binding(
+            get: { value },
+            set: { value = min(max($0, range.lowerBound), range.upperBound) }
+        )
     }
 }
