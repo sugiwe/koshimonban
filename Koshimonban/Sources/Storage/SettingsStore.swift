@@ -124,6 +124,7 @@ final class SettingsStore: ObservableObject {
             preNotifyMinutes: settings.preNotifyMinutes,
             skipUnlockSeconds: settings.skipUnlockSeconds,
             videos: settings.videos,
+            pauseDuringMeetings: settings.pauseDuringMeetings,
             debugMode: settings.debugMode,
             debugIgnoreWorkBlocks: settings.debugIgnoreWorkBlocks
         )

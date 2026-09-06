@@ -16,6 +16,8 @@ struct AppSettings: Codable, Equatable {
     var preNotifyMinutes: Int
     var skipUnlockSeconds: Int
     var videos: [VideoEntry]
+    /// 会議中（マイクかカメラが使われている間）は発動を見送る
+    var pauseDuringMeetings: Bool
     var debugMode: Bool
     /// デバッグモード時、作業時間帯の判定を無視して常に作業中とみなす
     var debugIgnoreWorkBlocks: Bool
@@ -54,6 +56,7 @@ struct AppSettings: Codable, Equatable {
         preNotifyMinutes: 1,
         skipUnlockSeconds: 5,
         videos: [],
+        pauseDuringMeetings: true,
         debugMode: false,
         debugIgnoreWorkBlocks: false
     )
@@ -61,7 +64,7 @@ struct AppSettings: Codable, Equatable {
     init(version: Int, schedule: WeekSchedule, gridStartHour: Int, gridEndHour: Int,
          intervalMinutes: Int, breakSeconds: Int,
          preNotifyMinutes: Int, skipUnlockSeconds: Int, videos: [VideoEntry],
-         debugMode: Bool, debugIgnoreWorkBlocks: Bool) {
+         pauseDuringMeetings: Bool, debugMode: Bool, debugIgnoreWorkBlocks: Bool) {
         self.version = version
         self.schedule = schedule
         self.gridStartHour = Self.clamp(gridStartHour, to: Limits.gridHour)
@@ -71,6 +74,7 @@ struct AppSettings: Codable, Equatable {
         self.preNotifyMinutes = Self.clamp(preNotifyMinutes, to: Limits.preNotifyMinutes)
         self.skipUnlockSeconds = Self.clamp(skipUnlockSeconds, to: Limits.skipUnlockSeconds)
         self.videos = videos
+        self.pauseDuringMeetings = pauseDuringMeetings
         self.debugMode = debugMode
         self.debugIgnoreWorkBlocks = debugIgnoreWorkBlocks
     }
@@ -90,6 +94,7 @@ struct AppSettings: Codable, Equatable {
             preNotifyMinutes:  try c.decodeIfPresent(Int.self,          forKey: .preNotifyMinutes)  ?? d.preNotifyMinutes,
             skipUnlockSeconds: try c.decodeIfPresent(Int.self,          forKey: .skipUnlockSeconds) ?? d.skipUnlockSeconds,
             videos:            try c.decodeIfPresent([VideoEntry].self, forKey: .videos)            ?? d.videos,
+            pauseDuringMeetings: try c.decodeIfPresent(Bool.self,     forKey: .pauseDuringMeetings) ?? d.pauseDuringMeetings,
             debugMode:         try c.decodeIfPresent(Bool.self,         forKey: .debugMode)         ?? d.debugMode,
             debugIgnoreWorkBlocks: try c.decodeIfPresent(Bool.self,     forKey: .debugIgnoreWorkBlocks) ?? d.debugIgnoreWorkBlocks
         )

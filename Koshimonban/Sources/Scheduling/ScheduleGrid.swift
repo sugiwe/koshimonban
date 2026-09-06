@@ -118,6 +118,8 @@ enum ScheduleGrid {
         var isOverlayVisible: Bool
         /// ユーザーが画面の前にいるか（ロック中・ユーザー切り替え中は false）
         var isUserPresent: Bool
+        /// 会議中か。発動を見送るが、終われば追いつく（不在と同じ扱い）。
+        var isInMeeting: Bool = false
         var breakSeconds: Int
     }
 
@@ -127,6 +129,8 @@ enum ScheduleGrid {
         case overtakenByNextSlot
         /// 画面がロックされたまま作業時間帯が終わった
         case lockedUntilBlockEnded
+        /// 会議が続いたまま作業時間帯が終わった
+        case inMeetingUntilBlockEnded
         /// 追いつく前に作業時間帯が終わった
         case notCaughtUpBeforeBlockEnded
         /// 一時停止中だった
@@ -161,10 +165,14 @@ enum ScheduleGrid {
         let canFireNow = canFire(slot: latest, atSeconds: context.nowSeconds,
                                  breakSeconds: context.breakSeconds)
 
-        if !context.isUserPresent {
-            // 不在中は発動しない。ただし作業時間帯が終わっていれば、もう追いつけない。
+        // 不在中と会議中は発動しない。どちらも「そのうち戻ってくる」状態なので、
+        // 決着させずに待つ。ただし作業時間帯が終わっていれば、もう追いつけない。
+        if !context.isUserPresent || context.isInMeeting {
             if !canFireNow {
-                decisions.append(.resolve(latest, .missed, .lockedUntilBlockEnded))
+                let cause: SkipCause = context.isUserPresent
+                    ? .inMeetingUntilBlockEnded
+                    : .lockedUntilBlockEnded
+                decisions.append(.resolve(latest, .missed, cause))
             }
             return decisions
         }

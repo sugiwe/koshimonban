@@ -54,6 +54,18 @@ struct GeneralSettingsTab: View {
             }
 
             Section {
+                Toggle("会議中は発動を見送る", isOn: settings.pauseDuringMeetings)
+                MeetingStateView()
+            } header: {
+                Text("会議")
+            } footer: {
+                Text("マイクかカメラが使われている間は発動しません。会議が終わったら発動します。"
+                     + "Zoom・Google Meet・Teams・Slack ハドルなど、アプリを問わず同じように効きます。"
+                     + "アプリ内でミュートしていても、多くの場合はマイクを掴んだままなので検知できます。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section {
                 Toggle("ログイン時に自動起動", isOn: Binding(
                     get: { launchAgent.isInstalled },
                     set: { enabled in
@@ -115,5 +127,53 @@ struct GeneralSettingsTab: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+/// いま会議中と判定されているかと、その根拠になっているデバイス。
+///
+/// 誤検知（録音アプリや音声入力でマイクが使われている等）が起きたときに、
+/// どのデバイスが原因かをここで確かめられるようにしておく。
+private struct MeetingStateView: View {
+    @EnvironmentObject private var settingsStore: SettingsStore
+    @State private var states: [MeetingDetector.DeviceState] = []
+    @State private var timer: Timer?
+
+    private let detector = MeetingDetector()
+
+    var body: some View {
+        let running = states.filter(\.isRunning)
+
+        VStack(alignment: .leading, spacing: 4) {
+            if running.isEmpty {
+                Label("いまは会議中ではありません", systemImage: "checkmark.circle")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                Label("会議中と判定しています", systemImage: "video.fill")
+                    .font(.caption).foregroundStyle(.orange)
+                ForEach(running) { state in
+                    Text("　使用中: \(state.name)")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .opacity(settingsStore.settings.pauseDuringMeetings ? 1 : 0.4)
+        .onAppear {
+            refresh()
+            // 設定画面を開いている間だけ、状態を追いかける
+            let timer = Timer(timeInterval: 2, repeats: true) { _ in
+                MainActor.assumeIsolated { refresh() }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            self.timer = timer
+        }
+        .onDisappear {
+            timer?.invalidate()
+            timer = nil
+        }
+    }
+
+    private func refresh() {
+        states = detector.deviceStates()
     }
 }
