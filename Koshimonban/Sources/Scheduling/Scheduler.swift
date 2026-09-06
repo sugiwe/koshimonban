@@ -52,6 +52,9 @@ final class Scheduler: ObservableObject {
     private var timer: Timer?
     private var graceTimer: Timer?
     private let screenState = ScreenStateMonitor()
+    private let meetingDetector = MeetingDetector()
+    /// 直前の tick 時点で会議中だったか。終わった瞬間を捉えるために持つ。
+    private var wasInMeeting = false
 
     /// 今日すでに決着がついた発動予定（0:00 からの経過秒）
     private var resolvedSlots: Set<Int> = []
@@ -74,6 +77,11 @@ final class Scheduler: ObservableObject {
     /// ユーザー切り替え中でも予告だけ出る、といった食い違いが起きていた。
     private var isUserPresent: Bool {
         !screenState.isScreenLocked && screenState.isSessionOnConsole
+    }
+
+    /// いま会議中とみなすか。設定でオフにしていれば常に false。
+    private var isInMeeting: Bool {
+        settings.pauseDuringMeetings && meetingDetector.isInMeeting
     }
 
     /// 復帰直後の猶予中か
@@ -181,6 +189,7 @@ final class Scheduler: ObservableObject {
         let nowSeconds = ScheduleGrid.secondsFromMidnight(for: now, calendar: calendar)
 
         seedResolvedSlotsIfNeeded(slots: slots, nowSeconds: nowSeconds, now: now)
+        noteMeetingTransition()
         evaluatePreNotify(slots: slots, nowSeconds: nowSeconds)
 
         let context = ScheduleGrid.Context(
@@ -189,6 +198,7 @@ final class Scheduler: ObservableObject {
             isPaused: isPaused,
             isOverlayVisible: isOverlayVisible(),
             isUserPresent: isUserPresent,
+            isInMeeting: isInMeeting,
             breakSeconds: settings.breakSeconds
         )
 
@@ -214,12 +224,28 @@ final class Scheduler: ObservableObject {
         onFire?(slot, now)
     }
 
+    /// 会議が終わった瞬間を捉えて、復帰と同じ猶予を置く。
+    /// 終話した直後に画面を奪われると、片付けや書き留めの時間が取れない。
+    private func noteMeetingTransition() {
+        let nowInMeeting = isInMeeting
+        defer { wasInMeeting = nowInMeeting }
+        guard wasInMeeting != nowInMeeting else { return }
+        if nowInMeeting {
+            log(.info, "会議中とみなして発動を見送ります（マイクかカメラが使われています）")
+        } else {
+            log(.info, "会議が終わったようです（\(Int(Self.resumeGraceSeconds))秒後に判定します）")
+            beginGrace()
+        }
+    }
+
     private func note(for cause: ScheduleGrid.SkipCause, slot: ScheduleGrid.Slot) -> String {
         switch cause {
         case .overtakenByNextSlot:
             "発動時刻 \(display(slot.at)) を過ぎたまま次の予定時刻になりました"
         case .lockedUntilBlockEnded:
             "画面がロックされたまま作業時間帯が終わりました"
+        case .inMeetingUntilBlockEnded:
+            "会議が続いたまま作業時間帯が終わりました"
         case .notCaughtUpBeforeBlockEnded:
             "追いつく前に作業時間帯が終わりました"
         case .pausedAtSlot:
@@ -288,7 +314,8 @@ final class Scheduler: ObservableObject {
     /// 次の発動が近づいていれば予告を出す。1つの予定につき1回だけ。
     private func evaluatePreNotify(slots: [ScheduleGrid.Slot], nowSeconds: Int) {
         let leadSeconds = settings.effectivePreNotifySeconds
-        guard leadSeconds > 0, !isPaused, !isOverlayVisible(), isUserPresent else { return }
+        // 会議中は予告も出さない。画面共有していると相手にも見えてしまう。
+        guard leadSeconds > 0, !isPaused, !isOverlayVisible(), isUserPresent, !isInMeeting else { return }
         guard let next = slots.first(where: { $0.at > nowSeconds }) else { return }
 
         let remaining = next.at - nowSeconds
@@ -351,6 +378,8 @@ final class Scheduler: ObservableObject {
             statusLine = "復帰直後のため待機中"
         } else if !isUserPresent {
             statusLine = "画面ロック中のため待機"
+        } else if isInMeeting {
+            statusLine = "会議中のため待機"
         } else if isOverlayVisible() {
             statusLine = "休憩中"
         } else {

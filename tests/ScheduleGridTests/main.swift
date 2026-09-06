@@ -217,10 +217,12 @@ let day = settings(blocks: [block("10:00", "12:00")])          // 10:30 11:00 11
 let daySlots = ScheduleGrid.slots(settings: day, weekday: 1)
 func at(_ time: String) -> Int { TimeOfDay(string: time)!.minutesFromMidnight * 60 }
 func decide(_ now: String, resolved: [String] = [], paused: Bool = false,
-            overlay: Bool = false, present: Bool = true, breakSec: Int = 180) -> String {
+            overlay: Bool = false, present: Bool = true, meeting: Bool = false,
+            breakSec: Int = 180) -> String {
     let context = ScheduleGrid.Context(
         nowSeconds: at(now), resolved: Set(resolved.map(at)), isPaused: paused,
-        isOverlayVisible: overlay, isUserPresent: present, breakSeconds: breakSec)
+        isOverlayVisible: overlay, isUserPresent: present, isInMeeting: meeting,
+        breakSeconds: breakSec)
     let decisions = ScheduleGrid.decide(slots: daySlots, context: context)
     guard !decisions.isEmpty else { return "なし" }
     return decisions.map { decision in
@@ -253,6 +255,32 @@ check("時間帯の途中なら遅れても追いつける",
       decide("11:00", resolved: ["10:30", "11:00"]), "なし")
 check("休憩が長いと、追いつける余地が早く尽きる",
       decide("11:50", resolved: ["10:30", "11:00"], breakSec: 900), "missed:11:30")
+
+print("\n=== 会議中の扱い ===")
+check("会議中は発動しない（決着もさせず、終わるのを待つ）",
+      decide("10:30", meeting: true), "なし")
+check("会議が終われば、遅れていても追いつく",
+      decide("11:00", resolved: ["10:30"], meeting: false), "発動:11:00")
+check("会議が続いたまま作業時間帯が終われば取りこぼし",
+      decide("11:58", resolved: ["10:30", "11:00"], meeting: true), "missed:11:30")
+check("会議中でも、たまった古い分は取りこぼしになる",
+      decide("11:30", meeting: true), "missed:10:30 missed:11:00")
+check("一時停止が会議中より優先される（記録は一時停止として残る）",
+      decide("10:30", paused: true, meeting: true), "paused:10:30")
+
+func cause(_ now: String, resolved: [String], present: Bool, meeting: Bool) -> String {
+    let context = ScheduleGrid.Context(
+        nowSeconds: at(now), resolved: Set(resolved.map(at)), isPaused: false,
+        isOverlayVisible: false, isUserPresent: present, isInMeeting: meeting, breakSeconds: 180)
+    for decision in ScheduleGrid.decide(slots: daySlots, context: context) {
+        if case .resolve(_, _, let cause) = decision { return "\(cause)" }
+    }
+    return "なし"
+}
+check("ロックで取りこぼした場合と会議で取りこぼした場合を区別できる",
+      cause("11:58", resolved: ["10:30", "11:00"], present: false, meeting: false)
+      + " / " + cause("11:58", resolved: ["10:30", "11:00"], present: true, meeting: true),
+      "lockedUntilBlockEnded / inMeetingUntilBlockEnded")
 
 print("\n=== 設定値の上限（手で編集された settings.json 対策）===")
 let insane = """
