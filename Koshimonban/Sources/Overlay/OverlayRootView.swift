@@ -145,9 +145,18 @@ private struct ActionButtons: View {
             Button {
                 session.requestSkip()
             } label: {
-                Text(session.canSkip ? "腰より仕事💀" : "腰より仕事💀　\(session.skipUnlockRemaining)")
-                    .font(.system(size: 18, weight: .medium))
-                    .monospacedDigit()
+                // カウントダウンの数字が消えるとボタンが縮み、中央揃えの列がずれて
+                // 隣の「腰を守った✌️」まで動く。最長の状態で幅を決めておく。
+                //
+                // 数字を直接書かず見えないラベルで幅を取るのは、文字やフォントを
+                // 変えたときに数値の調整が要らないようにするため。
+                ZStack {
+                    Text("腰より仕事💀　00")
+                        .hidden()
+                    Text(session.canSkip ? "腰より仕事💀" : "腰より仕事💀　\(session.skipUnlockRemaining)")
+                }
+                .font(.system(size: 18, weight: .medium))
+                .monospacedDigit()
             }
             .buttonStyle(.overlay(.secondary))
             .disabled(!session.canSkip)
