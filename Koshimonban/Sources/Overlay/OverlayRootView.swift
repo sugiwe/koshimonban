@@ -111,10 +111,24 @@ private struct BreakContentView: View {
 private struct VideoLeadInView: View {
     let remaining: Int
 
+    /// 背景に敷くアプリ名の濃さ。数字の邪魔をしない程度に留める。
+    private static let wordmarkOpacity: Double = 0.10
+    /// 実際の大きさは枠に合わせて縮む。ここは「縮む前の上限」なので、
+    /// 枠より確実に大きい値を置いて、常に枠幅いっぱいまで広がるようにする。
+    private static let wordmarkMaxFontSize: CGFloat = 800
+
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.white.opacity(0.04))
+
+            // 枠いっぱいのアプリ名。カウントダウンの背後に薄く敷く。
+            Text("腰門番")
+                .font(.system(size: Self.wordmarkMaxFontSize, weight: .bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.05)
+                .foregroundStyle(.white.opacity(Self.wordmarkOpacity))
+                .padding(.horizontal, 24)
 
             Text("\(remaining)")
                 .font(.system(size: 120, weight: .thin, design: .rounded))
