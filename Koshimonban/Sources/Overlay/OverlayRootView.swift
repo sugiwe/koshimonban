@@ -19,13 +19,16 @@ struct OverlayRootView: View {
 
             GateCurtainView(isClosed: gate.isClosed)
 
-            Group {
-                if isPrimary {
-                    PrimaryOverlayView(session: session, video: video, playbackState: playbackState)
-                } else {
-                    SecondaryOverlayView(session: session)
-                }
-            }
+            // 全ディスプレイで同じ画面を出す。
+            //
+            // **動画だけはメイン1枚に限る。** 全画面で再生すると音が画面の枚数だけ
+            // 重なって鳴り、YouTube も枚数ぶん読み込むことになる。
+            // 動画が無い場合のレイアウトは元からあるので、サブには動画を渡さないだけでよい。
+            //
+            // ボタンは全画面に出す。どの画面の前にいても休憩を終われるようにするため。
+            BreakContentView(session: session,
+                             video: isPrimary ? video : nil,
+                             playbackState: isPrimary ? playbackState : nil)
             // 中身は門が閉じきってから出す。閉じる途中で文字が見えると落ち着かない。
             .opacity(gate.showsContent ? 1 : 0)
             // opacity だけではクリックもキー入力も生きたままになる。
@@ -37,8 +40,9 @@ struct OverlayRootView: View {
     }
 }
 
-/// メインディスプレイ側。カウントダウン・動画・ボタン。
-private struct PrimaryOverlayView: View {
+/// 休憩中の中身。カウントダウン・動画・ボタン。
+/// 動画を渡さなければ、動画なしのレイアウトになる（サブディスプレイ用）。
+private struct BreakContentView: View {
     @ObservedObject var session: BreakSession
     let video: VideoEntry?
     let playbackState: VideoPlaybackState?
@@ -56,7 +60,7 @@ private struct PrimaryOverlayView: View {
         VStack(spacing: hasVideo ? 20 : 32) {
             Spacer(minLength: hasVideo ? 24 : 0)
 
-            Text("腰を守るためにストレッチしよう🏋️‍♀️")
+            Text("腰を守っていて偉い👏")
                 .font(.system(size: hasVideo ? 24 : 32, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.85))
 
@@ -133,13 +137,8 @@ private struct ActionButtons: View {
             } label: {
                 Text("腰を守った✌️")
                     .font(.system(size: 18, weight: .semibold))
-                    .padding(.horizontal, 24)
-                    .frame(minWidth: 180, minHeight: 52)
             }
-            .buttonStyle(.plain)
-            .background(Color.white.opacity(0.16))
-            .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .buttonStyle(.overlay(.primary))
 
             // スキップは表示から数秒間押せない。
             // 反射でスキップを押す癖がつくのを防ぐための摩擦。
@@ -149,13 +148,8 @@ private struct ActionButtons: View {
                 Text(session.canSkip ? "腰より仕事💀" : "腰より仕事💀　\(session.skipUnlockRemaining)")
                     .font(.system(size: 18, weight: .medium))
                     .monospacedDigit()
-                    .padding(.horizontal, 24)
-                    .frame(minWidth: 180, minHeight: 52)
             }
-            .buttonStyle(.plain)
-            .background(Color.white.opacity(session.canSkip ? 0.08 : 0.03))
-            .foregroundStyle(.white.opacity(session.canSkip ? 0.7 : 0.3))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .buttonStyle(.overlay(.secondary))
             .disabled(!session.canSkip)
         }
     }
@@ -177,44 +171,26 @@ private struct SkipReasonPicker: View {
                     } label: {
                         Text(reason.displayName)
                             .font(.system(size: 16))
-                            .padding(.horizontal, 20)
-                            .frame(minWidth: 150, minHeight: 48)
                     }
-                    .buttonStyle(.plain)
-                    .background(Color.white.opacity(0.12))
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .buttonStyle(.overlay(.choice))
                 }
             }
 
-            HStack(spacing: 24) {
-                Button("理由を選ばずスキップ") { session.confirmSkip(reason: nil) }
-                    .buttonStyle(.plain)
-                    .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.45))
+            HStack(spacing: 12) {
+                Button {
+                    session.confirmSkip(reason: nil)
+                } label: {
+                    Text("理由を選ばずスキップ").font(.system(size: 14))
+                }
+                .buttonStyle(.overlay(.quiet))
 
-                Button("やっぱり腰を守る🏋️‍♀️") { session.cancelSkip() }
-                    .buttonStyle(.plain)
-                    .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.45))
+                Button {
+                    session.cancelSkip()
+                } label: {
+                    Text("やっぱり腰を守る🏋️‍♀️").font(.system(size: 14))
+                }
+                .buttonStyle(.overlay(.quiet))
             }
-        }
-    }
-}
-
-/// サブディスプレイ側。暗転とカウントダウンだけ。
-private struct SecondaryOverlayView: View {
-    @ObservedObject var session: BreakSession
-
-    var body: some View {
-        VStack(spacing: 20) {
-            Text("腰を守っていて偉い👏")
-                .font(.system(size: 24, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
-            Text(session.countdownText)
-                .font(.system(size: 96, weight: .thin, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(.white.opacity(0.75))
         }
     }
 }
