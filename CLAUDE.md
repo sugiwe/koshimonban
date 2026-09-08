@@ -63,6 +63,19 @@ xcodebuild -project Koshimonban.xcodeproj -scheme Koshimonban -configuration Deb
 `Koshimonban/Sources` は Xcode の buildable folder なので、**ファイルを増やしても
 `.xcodeproj` を編集する必要はありません。** `project.pbxproj` を手で編集しないでください。
 
+## バージョンの置き場
+
+**`Koshimonban/Info.plist` の1箇所だけ**です。
+
+```
+CFBundleShortVersionString  表に出るバージョン（0.2 など）
+CFBundleVersion             ビルド番号（リリースごとに1つ増やす）
+```
+
+`project.pbxproj` にも `MARKETING_VERSION` を書ける仕組みがありますが、
+Info.plist が直接値を持っている構成では**そちらが使われず、値が食い違うだけ**なので
+削除しました。バージョンを上げるときは Info.plist だけを直してください。
+
 ## 実機での確認は人間に依頼する
 
 このアプリは全画面を奪います。オーバーレイが本当に最前面に出るか、フルスクリーンのアプリの
